@@ -68,22 +68,31 @@ export const getMonthlyAnalytics = async (month: string) => {
     const totalBudgeted = categoriesWithTotals.reduce((sum, cat) => sum + cat.totalBudgeted, 0);
     const totalSpent = categoriesWithTotals.reduce((sum, cat) => sum + cat.totalSpent, 0);
     const remaining = budget.income - totalSpent;
+    
+    // Calculate actual income from transactions
+    const actualIncome = transactions
+      .filter(t => t.type === "income")
+      .reduce((sum, t) => sum + t.amount, 0);
 
     return {
       income: budget.income,
+      actualIncome,
       totalBudgeted,
       totalSpent,
       remaining,
-      categories: categoriesWithTotals
+      categories: categoriesWithTotals,
+      needsAllocation: budget.income - totalBudgeted
     };
   } catch (error) {
     console.error('Error getting monthly analytics:', error);
     return {
       income: 0,
+      actualIncome: 0,
       totalBudgeted: 0,
       totalSpent: 0,
       remaining: 0,
-      categories: []
+      categories: [],
+      needsAllocation: 0
     };
   }
 };

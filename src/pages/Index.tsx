@@ -12,10 +12,12 @@ export default function Index() {
   const [currentMonth, setCurrentMonthState] = useState(getCurrentMonth());
   const [analytics, setAnalytics] = useState({
     income: 0,
+    actualIncome: 0,
     totalBudgeted: 0,
     totalSpent: 0,
     remaining: 0,
-    categories: []
+    categories: [],
+    needsAllocation: 0
   });
   const [transactions, setTransactions] = useState([]);
   const [activeTab, setActiveTab] = useState("budget");

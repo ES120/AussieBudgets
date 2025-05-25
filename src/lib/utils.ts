@@ -1,6 +1,7 @@
 
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { CategoryType, SubcategoryType, TransactionType } from "./types"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -67,4 +68,44 @@ export function getProgressBarColor(status: "under" | "warning" | "over" | "neut
     case "over": return "bg-budget-over";
     default: return "bg-budget-neutral";
   }
+}
+
+export function calculateCategoryTotals(category: CategoryType, transactions: TransactionType[]) {
+  const subcategoriesWithTotals = category.subcategories.map(subcategory => {
+    const spent = transactions
+      .filter(t => t.type === "expense" && t.subcategoryId === subcategory.id)
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    const remaining = subcategory.budgeted - spent;
+    const percentUsed = subcategory.budgeted > 0 ? (spent / subcategory.budgeted) * 100 : 0;
+    
+    let status: "under" | "warning" | "over" | "neutral" = "neutral";
+    if (subcategory.budgeted === 0) {
+      status = "neutral";
+    } else if (percentUsed > 100) {
+      status = "over";
+    } else if (percentUsed >= 80) {
+      status = "warning";
+    } else {
+      status = "under";
+    }
+    
+    return {
+      ...subcategory,
+      spent,
+      remaining,
+      status
+    };
+  });
+
+  const totalBudgeted = subcategoriesWithTotals.reduce((sum, s) => sum + s.budgeted, 0);
+  const totalSpent = subcategoriesWithTotals.reduce((sum, s) => sum + s.spent, 0);
+
+  return {
+    ...category,
+    subcategories: subcategoriesWithTotals,
+    totalBudgeted,
+    totalSpent,
+    remaining: totalBudgeted - totalSpent
+  };
 }
