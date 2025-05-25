@@ -8,6 +8,8 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('Getting budget for month:', month, 'user:', user.id);
+
     const { data: budget, error } = await supabase
       .from('monthly_budgets')
       .select('*')
@@ -15,9 +17,13 @@ export const supabaseService = {
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error getting budget:', error);
+      throw error;
+    }
 
     if (!budget) {
+      console.log('No budget found, creating new one');
       // Create a new budget for this month
       const { data: newBudget, error: createError } = await supabase
         .from('monthly_budgets')
@@ -29,7 +35,12 @@ export const supabaseService = {
         .select()
         .single();
 
-      if (createError) throw createError;
+      if (createError) {
+        console.error('Error creating new budget:', createError);
+        throw createError;
+      }
+      
+      console.log('Created new budget:', newBudget);
       
       return {
         month,
@@ -37,6 +48,8 @@ export const supabaseService = {
         categories: []
       };
     }
+
+    console.log('Found existing budget:', budget);
 
     // Get categories and subcategories for this user
     const { data: categories, error: categoriesError } = await supabase
@@ -48,7 +61,12 @@ export const supabaseService = {
       .eq('user_id', user.id)
       .order('created_at');
 
-    if (categoriesError) throw categoriesError;
+    if (categoriesError) {
+      console.error('Error getting categories:', categoriesError);
+      throw categoriesError;
+    }
+
+    console.log('Found categories:', categories);
 
     // Transform the data to match our types
     const transformedCategories: CategoryType[] = (categories || []).map(cat => ({
@@ -73,15 +91,25 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('Saving budget:', budget, 'for user:', user.id);
+
+    // Use upsert with proper conflict resolution
     const { error } = await supabase
       .from('monthly_budgets')
       .upsert({
         month: budget.month,
         income: budget.income,
         user_id: user.id
+      }, {
+        onConflict: 'user_id,month'
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error saving budget:', error);
+      throw error;
+    }
+
+    console.log('Budget saved successfully');
   },
 
   // Category operations
@@ -194,6 +222,8 @@ export const supabaseService = {
     const startDate = `${month}-01`;
     const endDate = `${month}-31`;
 
+    console.log('Getting transactions for month:', month, 'user:', user.id);
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
@@ -202,7 +232,12 @@ export const supabaseService = {
       .lte('date', endDate)
       .order('date', { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error getting transactions:', error);
+      throw error;
+    }
+    
+    console.log('Found transactions:', data);
     
     // Transform the data to match our types
     return (data || []).map(transaction => ({
@@ -219,6 +254,8 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('Saving transaction:', transaction, 'for user:', user.id);
+
     if (transaction.id && transaction.id !== '') {
       // Update existing transaction
       const { error } = await supabase
@@ -233,7 +270,10 @@ export const supabaseService = {
         .eq('id', transaction.id)
         .eq('user_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating transaction:', error);
+        throw error;
+      }
     } else {
       // Create new transaction
       const { error } = await supabase
@@ -247,8 +287,13 @@ export const supabaseService = {
           user_id: user.id
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating transaction:', error);
+        throw error;
+      }
     }
+
+    console.log('Transaction saved successfully');
   },
 
   async deleteTransaction(transactionId: string): Promise<void> {
