@@ -8,7 +8,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { formatCurrency, formatDate, generateId } from "@/lib/utils";
-import { deleteTransaction, getBudget, saveTransaction } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
+import { getBudget } from "@/lib/supabaseStore";
 import { TransactionType } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
@@ -29,17 +30,27 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
     subcategoryId: "" as string | null,
     description: ""
   });
+  const [allSubcategories, setAllSubcategories] = useState([]);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const budget = getBudget(currentMonth);
-  const allSubcategories = budget.categories.flatMap(category => 
-    category.subcategories.map(subcategory => ({
-      ...subcategory,
-      categoryName: category.name
-    }))
-  );
+  // Load subcategories when dialog opens
+  const loadSubcategories = async () => {
+    try {
+      const budget = await getBudget(currentMonth);
+      const subcategories = budget.categories.flatMap(category => 
+        category.subcategories.map(subcategory => ({
+          ...subcategory,
+          categoryName: category.name
+        }))
+      );
+      setAllSubcategories(subcategories);
+    } catch (error) {
+      console.error('Error loading subcategories:', error);
+    }
+  };
 
-  const handleAddTransaction = () => {
+  const handleAddTransaction = async () => {
     if (!transactionData.amount || parseFloat(transactionData.amount) <= 0) {
       toast({
         title: "Error",
@@ -67,35 +78,47 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
       return;
     }
     
-    const newTransaction: TransactionType = {
-      id: generateId(),
-      amount: parseFloat(transactionData.amount),
-      date: transactionData.date,
-      type: transactionData.type,
-      subcategoryId: transactionData.type === "income" ? null : transactionData.subcategoryId,
-      description: transactionData.description.trim()
-    };
-    
-    saveTransaction(newTransaction);
-    
-    setTransactionData({
-      amount: "",
-      date: new Date().toISOString().split('T')[0],
-      type: "expense",
-      subcategoryId: null,
-      description: ""
-    });
-    
-    setDialogOpen(false);
-    onUpdate();
-    
-    toast({
-      title: "Transaction Added",
-      description: `${transactionData.type === "income" ? "Income" : "Expense"} of ${formatCurrency(parseFloat(transactionData.amount))} has been recorded.`
-    });
+    setSaving(true);
+    try {
+      const newTransaction: TransactionType = {
+        id: generateId(),
+        amount: parseFloat(transactionData.amount),
+        date: transactionData.date,
+        type: transactionData.type,
+        subcategoryId: transactionData.type === "income" ? null : transactionData.subcategoryId,
+        description: transactionData.description.trim()
+      };
+      
+      await supabaseService.saveTransaction(newTransaction);
+      
+      setTransactionData({
+        amount: "",
+        date: new Date().toISOString().split('T')[0],
+        type: "expense",
+        subcategoryId: null,
+        description: ""
+      });
+      
+      setDialogOpen(false);
+      onUpdate();
+      
+      toast({
+        title: "Transaction Added",
+        description: `${transactionData.type === "income" ? "Income" : "Expense"} of ${formatCurrency(parseFloat(transactionData.amount))} has been recorded.`
+      });
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleUpdateTransaction = () => {
+  const handleUpdateTransaction = async () => {
     if (!editTransaction) return;
     
     if (parseFloat(editTransaction.amount.toString()) <= 0) {
@@ -116,33 +139,54 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
       return;
     }
     
-    const updatedTransaction: TransactionType = {
-      ...editTransaction,
-      amount: parseFloat(editTransaction.amount.toString()),
-      subcategoryId: editTransaction.type === "income" ? null : editTransaction.subcategoryId,
-      description: editTransaction.description.trim()
-    };
-    
-    saveTransaction(updatedTransaction);
-    
-    setEditTransaction(null);
-    setDialogOpen(false);
-    onUpdate();
-    
-    toast({
-      title: "Transaction Updated",
-      description: "Changes have been saved successfully."
-    });
+    setSaving(true);
+    try {
+      const updatedTransaction: TransactionType = {
+        ...editTransaction,
+        amount: parseFloat(editTransaction.amount.toString()),
+        subcategoryId: editTransaction.type === "income" ? null : editTransaction.subcategoryId,
+        description: editTransaction.description.trim()
+      };
+      
+      await supabaseService.saveTransaction(updatedTransaction);
+      
+      setEditTransaction(null);
+      setDialogOpen(false);
+      onUpdate();
+      
+      toast({
+        title: "Transaction Updated",
+        description: "Changes have been saved successfully."
+      });
+    } catch (error) {
+      console.error('Error updating transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update transaction. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    deleteTransaction(id, currentMonth);
-    onUpdate();
-    
-    toast({
-      title: "Transaction Deleted",
-      description: "Transaction has been removed from your records."
-    });
+  const handleDeleteTransaction = async (id: string) => {
+    try {
+      await supabaseService.deleteTransaction(id);
+      onUpdate();
+      
+      toast({
+        title: "Transaction Deleted",
+        description: "Transaction has been removed from your records."
+      });
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete transaction. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const sortedTransactions = [...transactions].sort(
@@ -170,6 +214,7 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetDialogState();
+          else loadSubcategories();
         }}>
           <DialogTrigger asChild>
             <Button>
@@ -289,11 +334,12 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
                   setDialogOpen(false);
                   resetDialogState();
                 }}
+                disabled={saving}
               >
                 Cancel
               </Button>
-              <Button onClick={editTransaction ? handleUpdateTransaction : handleAddTransaction}>
-                {editTransaction ? "Save Changes" : "Add Transaction"}
+              <Button onClick={editTransaction ? handleUpdateTransaction : handleAddTransaction} disabled={saving}>
+                {saving ? "Saving..." : (editTransaction ? "Save Changes" : "Add Transaction")}
               </Button>
             </DialogFooter>
           </DialogContent>

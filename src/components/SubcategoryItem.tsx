@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { getBudget, saveBudget } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import { formatCurrency, generateId, getProgressBarColor } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -27,9 +27,10 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
   const [editSubcategory, setEditSubcategory] = useState<SubcategoryType | null>(null);
   const [subcategoryName, setSubcategoryName] = useState("");
   const [subcategoryAmount, setSubcategoryAmount] = useState("");
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const handleAddSubcategory = () => {
+  const handleAddSubcategory = async () => {
     if (!subcategoryName.trim()) {
       toast({
         title: "Error",
@@ -39,19 +40,13 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
       return;
     }
     
-    const budget = getBudget(currentMonth);
-    const categoryIndex = budget.categories.findIndex(c => c.id === categoryId);
-    
-    if (categoryIndex >= 0) {
-      const newSubcategory: SubcategoryType = {
-        id: generateId(),
-        name: subcategoryName.trim(),
-        budgeted: parseFloat(subcategoryAmount) || 0,
-        categoryId: categoryId
-      };
-      
-      budget.categories[categoryIndex].subcategories.push(newSubcategory);
-      saveBudget(budget);
+    setSaving(true);
+    try {
+      await supabaseService.createSubcategory(
+        categoryId, 
+        subcategoryName.trim(), 
+        parseFloat(subcategoryAmount) || 0
+      );
       
       setSubcategoryName("");
       setSubcategoryAmount("");
@@ -60,12 +55,21 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
       
       toast({
         title: "Subcategory Added",
-        description: `${newSubcategory.name} has been added to your budget.`
+        description: `${subcategoryName.trim()} has been added to your budget.`
       });
+    } catch (error) {
+      console.error('Error adding subcategory:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add subcategory. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleUpdateSubcategory = () => {
+  const handleUpdateSubcategory = async () => {
     if (!editSubcategory || !editSubcategory.name.trim()) {
       toast({
         title: "Error",
@@ -75,49 +79,45 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
       return;
     }
     
-    const budget = getBudget(currentMonth);
-    const categoryIndex = budget.categories.findIndex(c => c.id === categoryId);
-    
-    if (categoryIndex >= 0) {
-      const subcategoryIndex = budget.categories[categoryIndex].subcategories.findIndex(
-        s => s.id === editSubcategory.id
-      );
+    setSaving(true);
+    try {
+      await supabaseService.updateSubcategory(editSubcategory);
       
-      if (subcategoryIndex >= 0) {
-        budget.categories[categoryIndex].subcategories[subcategoryIndex] = {
-          ...editSubcategory,
-          name: editSubcategory.name.trim(),
-          budgeted: parseFloat(editSubcategory.budgeted.toString()) || 0
-        };
-        
-        saveBudget(budget);
-        
-        setEditSubcategory(null);
-        setDialogOpen(false);
-        onUpdate();
-        
-        toast({
-          title: "Subcategory Updated",
-          description: "Changes have been saved successfully."
-        });
-      }
+      setEditSubcategory(null);
+      setDialogOpen(false);
+      onUpdate();
+      
+      toast({
+        title: "Subcategory Updated",
+        description: "Changes have been saved successfully."
+      });
+    } catch (error) {
+      console.error('Error updating subcategory:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update subcategory. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteSubcategory = (subcategoryId: string) => {
-    const budget = getBudget(currentMonth);
-    const categoryIndex = budget.categories.findIndex(c => c.id === categoryId);
-    
-    if (categoryIndex >= 0) {
-      budget.categories[categoryIndex].subcategories = 
-        budget.categories[categoryIndex].subcategories.filter(s => s.id !== subcategoryId);
-        
-      saveBudget(budget);
+  const handleDeleteSubcategory = async (subcategoryId: string) => {
+    try {
+      await supabaseService.deleteSubcategory(subcategoryId);
       onUpdate();
       
       toast({
         title: "Subcategory Deleted",
         description: "Subcategory has been removed from your budget."
+      });
+    } catch (error) {
+      console.error('Error deleting subcategory:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete subcategory. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -165,6 +165,7 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
                   }
                   className="mt-2"
                   placeholder="e.g., Groceries, Rent, Utilities"
+                  disabled={saving}
                 />
               </div>
               
@@ -186,6 +187,7 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
                   }
                   className="mt-2"
                   placeholder="0.00"
+                  disabled={saving}
                 />
               </div>
             </div>
@@ -197,11 +199,12 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
                   setDialogOpen(false);
                   resetDialogState();
                 }}
+                disabled={saving}
               >
                 Cancel
               </Button>
-              <Button onClick={editSubcategory ? handleUpdateSubcategory : handleAddSubcategory}>
-                {editSubcategory ? "Save Changes" : "Add Subcategory"}
+              <Button onClick={editSubcategory ? handleUpdateSubcategory : handleAddSubcategory} disabled={saving}>
+                {saving ? "Saving..." : (editSubcategory ? "Save Changes" : "Add Subcategory")}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -10,7 +10,7 @@ import { Plus, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getBudget, saveBudget } from "@/lib/store";
+import { supabaseService } from "@/services/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import SubcategoryItem from "./SubcategoryItem";
 
@@ -33,9 +33,10 @@ export default function CategoryList({ currentMonth, categories, onUpdate }: Cat
   const [newCategoryName, setNewCategoryName] = useState("");
   const [editCategory, setEditCategory] = useState<CategoryType | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const handleAddCategory = () => {
+  const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
       toast({
         title: "Error",
@@ -45,28 +46,31 @@ export default function CategoryList({ currentMonth, categories, onUpdate }: Cat
       return;
     }
     
-    const budget = getBudget(currentMonth);
-    
-    const newCategory: CategoryType = {
-      id: generateId(),
-      name: newCategoryName.trim(),
-      subcategories: []
-    };
-    
-    budget.categories.push(newCategory);
-    saveBudget(budget);
-    
-    setNewCategoryName("");
-    setCategoryDialogOpen(false);
-    onUpdate();
-    
-    toast({
-      title: "Category Added",
-      description: `${newCategory.name} has been added to your budget.`
-    });
+    setSaving(true);
+    try {
+      await supabaseService.createCategory(newCategoryName.trim());
+      
+      setNewCategoryName("");
+      setCategoryDialogOpen(false);
+      onUpdate();
+      
+      toast({
+        title: "Category Added",
+        description: `${newCategoryName.trim()} has been added to your budget.`
+      });
+    } catch (error) {
+      console.error('Error adding category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add category. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleUpdateCategory = () => {
+  const handleUpdateCategory = async () => {
     if (!editCategory || !editCategory.name.trim()) {
       toast({
         title: "Error",
@@ -76,12 +80,9 @@ export default function CategoryList({ currentMonth, categories, onUpdate }: Cat
       return;
     }
     
-    const budget = getBudget(currentMonth);
-    const index = budget.categories.findIndex(c => c.id === editCategory.id);
-    
-    if (index >= 0) {
-      budget.categories[index].name = editCategory.name.trim();
-      saveBudget(budget);
+    setSaving(true);
+    try {
+      await supabaseService.updateCategory(editCategory);
       
       setEditCategory(null);
       setCategoryDialogOpen(false);
@@ -91,21 +92,35 @@ export default function CategoryList({ currentMonth, categories, onUpdate }: Cat
         title: "Category Updated",
         description: `Category has been renamed successfully.`
       });
+    } catch (error) {
+      console.error('Error updating category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update category. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
     }
   };
 
-  const handleDeleteCategory = (categoryId: string) => {
-    const budget = getBudget(currentMonth);
-    
-    budget.categories = budget.categories.filter(c => c.id !== categoryId);
-    saveBudget(budget);
-    
-    onUpdate();
-    
-    toast({
-      title: "Category Deleted",
-      description: "Category and all its subcategories have been removed."
-    });
+  const handleDeleteCategory = async (categoryId: string) => {
+    try {
+      await supabaseService.deleteCategory(categoryId);
+      onUpdate();
+      
+      toast({
+        title: "Category Deleted",
+        description: "Category and all its subcategories have been removed."
+      });
+    } catch (error) {
+      console.error('Error deleting category:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete category. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -141,6 +156,7 @@ export default function CategoryList({ currentMonth, categories, onUpdate }: Cat
                 }
                 className="mt-2"
                 placeholder="e.g., Housing, Transportation, Food"
+                disabled={saving}
               />
             </div>
             
@@ -152,11 +168,12 @@ export default function CategoryList({ currentMonth, categories, onUpdate }: Cat
                   setEditCategory(null);
                   setNewCategoryName("");
                 }}
+                disabled={saving}
               >
                 Cancel
               </Button>
-              <Button onClick={editCategory ? handleUpdateCategory : handleAddCategory}>
-                {editCategory ? "Save Changes" : "Add Category"}
+              <Button onClick={editCategory ? handleUpdateCategory : handleAddCategory} disabled={saving}>
+                {saving ? "Saving..." : (editCategory ? "Save Changes" : "Add Category")}
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { getBudget, saveBudget } from "@/lib/store";
+import { getBudget, saveBudget } from "@/lib/supabaseStore";
 import { formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,22 +16,35 @@ interface IncomeFormProps {
 export default function IncomeForm({ currentMonth, income, onIncomeChange }: IncomeFormProps) {
   const [newIncome, setNewIncome] = useState(income.toString());
   const [isEditing, setIsEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const parsedIncome = parseFloat(newIncome) || 0;
-    const budget = getBudget(currentMonth);
+    setSaving(true);
     
-    budget.income = parsedIncome;
-    saveBudget(budget);
-    
-    setIsEditing(false);
-    onIncomeChange();
-    
-    toast({
-      title: "Income Updated",
-      description: `Monthly income set to ${formatCurrency(parsedIncome)}`,
-    });
+    try {
+      const budget = await getBudget(currentMonth);
+      budget.income = parsedIncome;
+      await saveBudget(budget);
+      
+      setIsEditing(false);
+      onIncomeChange();
+      
+      toast({
+        title: "Income Updated",
+        description: `Monthly income set to ${formatCurrency(parsedIncome)}`,
+      });
+    } catch (error) {
+      console.error('Error saving income:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update income. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -51,9 +64,14 @@ export default function IncomeForm({ currentMonth, income, onIncomeChange }: Inc
               value={newIncome}
               onChange={(e) => setNewIncome(e.target.value)}
               className="w-full"
+              disabled={saving}
             />
-            <Button onClick={handleSave} size="sm">Save</Button>
-            <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>Cancel</Button>
+            <Button onClick={handleSave} size="sm" disabled={saving}>
+              {saving ? "Saving..." : "Save"}
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(false)} disabled={saving}>
+              Cancel
+            </Button>
           </div>
         ) : (
           <div className="flex items-center justify-between">
