@@ -1,10 +1,10 @@
-
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatCurrency, formatMonthYear, getMonthOptions } from "@/lib/utils";
 import { getCurrentMonth, getMonthlyAnalytics, setCurrentMonth } from "@/lib/store";
 import { useState } from "react";
+import UserMenu from "@/components/auth/UserMenu";
 
 interface BudgetHeaderProps {
   currentMonth: string;
@@ -42,22 +42,26 @@ export default function BudgetHeader({ currentMonth, setCurrentMonth, analytics 
             </p>
           </div>
           
-          <Select
-            value={currentMonth}
-            onValueChange={handleMonthChange}
-            disabled={isChangingMonth}
-          >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue placeholder="Select month" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-4">
+            <Select
+              value={currentMonth}
+              onValueChange={handleMonthChange}
+              disabled={isChangingMonth}
+            >
+              <SelectTrigger className="w-[200px]">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            
+            <UserMenu />
+          </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
