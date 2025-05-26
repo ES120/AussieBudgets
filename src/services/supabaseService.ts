@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -275,7 +274,7 @@ export const supabaseService = {
         throw error;
       }
     } else {
-      // Create new transaction
+      // Create new transaction - let database generate the ID
       const { error } = await supabase
         .from('transactions')
         .insert({

@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Plus, Edit, Trash2 } from "lucide-react";
-import { formatCurrency, formatDate, generateId } from "@/lib/utils";
+import { formatCurrency, formatDate } from "@/lib/utils";
 import { supabaseService } from "@/services/supabaseService";
 import { getBudget } from "@/lib/supabaseStore";
 import { TransactionType } from "@/lib/types";
@@ -81,7 +80,7 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
     setSaving(true);
     try {
       const newTransaction: TransactionType = {
-        id: generateId(),
+        id: "", // Let the database generate the ID
         amount: parseFloat(transactionData.amount),
         date: transactionData.date,
         type: transactionData.type,
