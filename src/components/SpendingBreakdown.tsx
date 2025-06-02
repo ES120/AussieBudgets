@@ -30,9 +30,9 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
   const allSubcategories: ExtendedSubcategory[] = categories.flatMap((category, categoryIndex) =>
     category.subcategories.map((subcategory) => ({
       ...subcategory,
-      spent: subcategory.spent,
-      remaining: subcategory.remaining,
-      status: subcategory.status,
+      spent: subcategory.spent || 0,
+      remaining: subcategory.remaining || 0,
+      status: subcategory.status || "neutral",
       categoryName: category.name,
       categoryColor: colors[categoryIndex % colors.length]
     }))
