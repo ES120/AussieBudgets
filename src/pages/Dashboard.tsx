@@ -128,11 +128,11 @@ export default function Dashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="py-0">
             <CardTitle className="text-lg">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               View detailed transactions and manage your budget categories in their respective sections.
             </p>
           </CardContent>
