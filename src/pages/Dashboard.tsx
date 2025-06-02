@@ -21,7 +21,7 @@ export default function Dashboard() {
     queryFn: () => supabaseService.getTransactions(currentMonth),
   });
 
-  const analytics = getMonthlyAnalytics(monthlyBudget, transactions || []);
+  const analytics = getMonthlyAnalytics(currentMonth);
 
   if (isLoading) {
     return (
