@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -122,11 +121,18 @@ export const supabaseService = {
     );
 
     for (const milestone of milestonesToCreate) {
+      // Calculate required monthly savings
+      const startDate = new Date(milestone.start_date);
+      const targetDate = new Date(milestone.target_date);
+      const monthsRemaining = Math.max(1, Math.ceil((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
+      const remainingAmount = milestone.target_amount - milestone.current_amount;
+      const monthlySavingsNeeded = Math.max(0, remainingAmount / monthsRemaining);
+
       const { error: createError } = await supabase
         .from('categories')
         .insert({
           name: `🎯 ${milestone.name}`,
-          budgeted: milestone.current_amount,
+          budgeted: monthlySavingsNeeded,
           milestone_id: milestone.id,
           user_id: user.id
         });
