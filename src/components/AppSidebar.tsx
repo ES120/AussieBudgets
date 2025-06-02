@@ -51,9 +51,11 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-orange-400 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-sm">AB</span>
-          </div>
+          <img 
+            src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=32&h=32&fit=crop&crop=center" 
+            alt="Aussie Budget Logo" 
+            className="w-8 h-8 rounded-lg object-cover"
+          />
           <div>
             <h2 className="font-semibold text-lg">Aussie Budget</h2>
           </div>
