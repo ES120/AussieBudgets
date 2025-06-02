@@ -98,7 +98,6 @@ export const supabaseService = {
       id: cat.id,
       name: cat.name,
       budgeted: Number(categoryBudgetMap.get(cat.id) || 0),
-      milestone_id: cat.milestone_id,
       subcategories: cat.subcategories.map((sub: any) => ({
         id: sub.id,
         name: sub.name,
@@ -315,7 +314,6 @@ export const supabaseService = {
       id: data.id, 
       name: data.name,
       budgeted: budgeted, // Use the provided budgeted amount for the current month
-      milestone_id: data.milestone_id,
       subcategories: [] 
     };
   },
