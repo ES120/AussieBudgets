@@ -43,11 +43,11 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
   function getStatusColor(status: "under" | "warning" | "over" | "neutral") {
     switch (status) {
       case "over":
-        return "bg-budget-over";
+        return "bg-red-600";
       case "warning":
         return "bg-budget-warning";
       case "under":
-        return "bg-budget-under";
+        return "bg-green-700";
       default:
         return "bg-budget-neutral";
     }
@@ -61,11 +61,11 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
   function getProgressBarColor(status: "under" | "warning" | "over" | "neutral") {
     switch (status) {
       case "over":
-        return "bg-budget-over";
+        return "bg-red-600";
       case "warning":
         return "bg-budget-warning";
       case "under":
-        return "bg-budget-under";
+        return "bg-green-700";
       default:
         return "bg-budget-neutral";
     }
@@ -119,7 +119,7 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
               <span>
                 {getProgressPercentage(subcategory.spent, subcategory.budgeted).toFixed(1)}% used
               </span>
-              <span className={subcategory.remaining >= 0 ? 'text-budget-under' : 'text-budget-over'}>
+              <span className={subcategory.remaining >= 0 ? 'text-green-700' : 'text-red-600'}>
                 {formatCurrency(subcategory.remaining)} remaining
               </span>
             </div>
