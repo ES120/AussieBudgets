@@ -25,10 +25,19 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
-      <AuthForm 
-        mode={mode} 
-        onToggle={() => setMode(mode === 'signin' ? 'signup' : 'signin')} 
-      />
+      <div className="w-full max-w-md space-y-6">
+        <div className="text-center">
+          <img 
+            src="/lovable-uploads/ed689a13-8ad3-42d6-b521-40710028fdcb.png" 
+            alt="Aussie Budget" 
+            className="mx-auto h-16 w-auto"
+          />
+        </div>
+        <AuthForm 
+          mode={mode} 
+          onToggle={() => setMode(mode === 'signin' ? 'signup' : 'signin')} 
+        />
+      </div>
     </div>
   );
 }
