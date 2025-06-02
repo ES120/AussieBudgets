@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Dashboard from "./pages/Dashboard";
@@ -34,9 +34,6 @@ const App = () => (
                     <div className="min-h-screen flex w-full">
                       <AppSidebar />
                       <SidebarInset className="flex-1">
-                        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
-                          <SidebarTrigger className="-ml-1" />
-                        </header>
                         <main className="flex-1 p-6">
                           <Routes>
                             <Route path="/" element={<Dashboard />} />

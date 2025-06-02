@@ -3,6 +3,11 @@ import { Home, Target, CreditCard, Trophy } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import UserMenu from "@/components/auth/UserMenu";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatMonthYear, getMonthOptions } from "@/lib/utils";
+import { getCurrentMonth, setCurrentMonth } from "@/lib/supabaseStore";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Sidebar,
   SidebarContent,
@@ -42,10 +47,25 @@ const navigationItems = [
 export function AppSidebar() {
   const location = useLocation();
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [currentMonth, setCurrentMonthState] = useState(getCurrentMonth());
+  const monthOptions = getMonthOptions();
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
+
+  const handleMonthChange = (month: string) => {
+    setCurrentMonth(month);
+    setCurrentMonthState(month);
+    toast({
+      title: "Month Changed",
+      description: `Viewing budget for ${formatMonthYear(month)}`
+    });
+  };
+
+  // Show month selector only on budget page
+  const showMonthSelector = location.pathname === "/budget";
 
   return (
     <Sidebar>
@@ -60,6 +80,26 @@ export function AppSidebar() {
             <h2 className="font-semibold text-lg">Aussie Budget</h2>
           </div>
         </div>
+        
+        {showMonthSelector && (
+          <div className="mt-4">
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">
+              Current Month
+            </label>
+            <Select value={currentMonth} onValueChange={handleMonthChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select month" />
+              </SelectTrigger>
+              <SelectContent>
+                {monthOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </SidebarHeader>
       
       <SidebarContent>
