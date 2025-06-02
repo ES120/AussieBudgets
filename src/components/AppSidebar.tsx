@@ -1,4 +1,3 @@
-
 import { Home, Target, CreditCard, Trophy } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,53 +7,37 @@ import { formatMonthYear, getMonthOptions } from "@/lib/utils";
 import { getCurrentMonth, setCurrentMonth } from "@/lib/supabaseStore";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-} from "@/components/ui/sidebar";
-
-const navigationItems = [
-  {
-    title: "Dashboard",
-    url: "/",
-    icon: Home,
-  },
-  {
-    title: "Budget Tracker",
-    url: "/budget",
-    icon: Target,
-  },
-  {
-    title: "Expenses / Transactions",
-    url: "/transactions",
-    icon: CreditCard,
-  },
-  {
-    title: "Milestones",
-    url: "/milestones",
-    icon: Trophy,
-  },
-];
-
+import { Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader, SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter } from "@/components/ui/sidebar";
+const navigationItems = [{
+  title: "Dashboard",
+  url: "/",
+  icon: Home
+}, {
+  title: "Budget Tracker",
+  url: "/budget",
+  icon: Target
+}, {
+  title: "Expenses / Transactions",
+  url: "/transactions",
+  icon: CreditCard
+}, {
+  title: "Milestones",
+  url: "/milestones",
+  icon: Trophy
+}];
 export function AppSidebar() {
   const location = useLocation();
-  const { user } = useAuth();
-  const { toast } = useToast();
+  const {
+    user
+  } = useAuth();
+  const {
+    toast
+  } = useToast();
   const [currentMonth, setCurrentMonthState] = useState(getCurrentMonth());
   const monthOptions = getMonthOptions();
-
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
-
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
     setCurrentMonthState(month);
@@ -66,23 +49,16 @@ export function AppSidebar() {
 
   // Show month selector only on budget page
   const showMonthSelector = location.pathname === "/budget";
-
-  return (
-    <Sidebar>
+  return <Sidebar>
       <SidebarHeader className="p-6">
         <div className="flex items-center gap-2">
-          <img 
-            src="https://images.unsplash.com/photo-1488590528505-98d2b5aba04b?w=32&h=32&fit=crop&crop=center" 
-            alt="Aussie Budget Logo" 
-            className="w-8 h-8 rounded-lg object-cover"
-          />
+          <img alt="Aussie Budget Logo" className="w-8 h-8 rounded-lg object-cover" src="/lovable-uploads/2d670f60-c893-4471-9f33-8432097bb6c4.png" />
           <div>
             <h2 className="font-semibold text-lg">Aussie Budget</h2>
           </div>
         </div>
         
-        {showMonthSelector && (
-          <div className="mt-4">
+        {showMonthSelector && <div className="mt-4">
             <label className="text-sm font-medium text-muted-foreground mb-2 block">
               Current Month
             </label>
@@ -91,15 +67,12 @@ export function AppSidebar() {
                 <SelectValue placeholder="Select month" />
               </SelectTrigger>
               <SelectContent>
-                {monthOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                {monthOptions.map(option => <SelectItem key={option.value} value={option.value}>
                     {option.label}
-                  </SelectItem>
-                ))}
+                  </SelectItem>)}
               </SelectContent>
             </Select>
-          </div>
-        )}
+          </div>}
       </SidebarHeader>
       
       <SidebarContent>
@@ -107,16 +80,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>NAVIGATION</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navigationItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+              {navigationItems.map(item => <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild isActive={location.pathname === item.url}>
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                </SidebarMenuItem>)}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -140,6 +111,5 @@ export function AppSidebar() {
           <UserMenu />
         </div>
       </SidebarFooter>
-    </Sidebar>
-  );
+    </Sidebar>;
 }
