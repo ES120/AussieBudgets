@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -16,6 +15,8 @@ interface CategoryDialogProps {
   setEditCategory: (category: CategoryType | null) => void;
   onUpdate: () => void;
 }
+
+const CATEGORY_EXAMPLES = ["Wants", "Needs", "Bills", "Savings", "Transportation", "Food", "Housing"];
 
 export default function CategoryDialog({
   currentMonth,
@@ -36,6 +37,14 @@ export default function CategoryDialog({
       setCategoryDialogOpen(true);
     }
   }, [editCategory]);
+
+  // Set a random example category name when dialog opens for new category
+  useEffect(() => {
+    if (categoryDialogOpen && !editCategory && !newCategoryName) {
+      const randomExample = CATEGORY_EXAMPLES[Math.floor(Math.random() * CATEGORY_EXAMPLES.length)];
+      setNewCategoryName(randomExample);
+    }
+  }, [categoryDialogOpen, editCategory, newCategoryName]);
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -150,7 +159,7 @@ export default function CategoryDialog({
                 name: e.target.value
               }) : setNewCategoryName(e.target.value)} 
               className="mt-2" 
-              placeholder="e.g., Housing, Transportation, Food" 
+              placeholder="e.g., Wants, Needs, Bills" 
               disabled={saving} 
             />
           </div>
