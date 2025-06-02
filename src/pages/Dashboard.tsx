@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentMonth, getMonthlyAnalytics } from "@/lib/supabaseStore";
 import SpendingBreakdown from "@/components/SpendingBreakdown";
 import BudgetSummary from "@/components/BudgetSummary";
-
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [analytics, setAnalytics] = useState({
@@ -16,7 +15,6 @@ export default function Dashboard() {
     needsAllocation: 0
   });
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -31,13 +29,11 @@ export default function Dashboard() {
     };
     loadData();
   }, [currentMonth]);
-
   if (loading) {
     return <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
       </div>;
   }
-
   return <div className="space-y-6 py-0 my-0">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
@@ -104,11 +100,7 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <SpendingBreakdown categories={analytics.categories} />
-        <BudgetSummary 
-          categories={analytics.categories}
-          totalBudgeted={analytics.totalBudgeted}
-          totalSpent={analytics.totalSpent}
-        />
+        <BudgetSummary categories={analytics.categories} totalBudgeted={analytics.totalBudgeted} totalSpent={analytics.totalSpent} />
       </div>
     </div>;
 }
