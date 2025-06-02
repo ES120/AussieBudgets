@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
