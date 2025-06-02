@@ -1,13 +1,16 @@
 
 import { useState, useEffect } from "react";
 import { getCurrentMonth, getTransactions, setCurrentMonth } from "@/lib/supabaseStore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatMonthYear, getMonthOptions } from "@/lib/utils";
 import TransactionList from "@/components/TransactionList";
-import MonthSelector from "@/components/MonthSelector";
 
 export default function Transactions() {
   const [currentMonth, setCurrentMonthState] = useState(getCurrentMonth());
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const monthOptions = getMonthOptions();
 
   useEffect(() => {
     const loadData = async () => {
@@ -49,15 +52,24 @@ export default function Transactions() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Expenses / Transactions</h1>
-        <p className="text-muted-foreground">Record and manage your transaction history</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Expenses / Transactions</h1>
+          <p className="text-muted-foreground">Record and manage your transaction history</p>
+        </div>
+        <Select value={currentMonth} onValueChange={handleMonthChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select month" />
+          </SelectTrigger>
+          <SelectContent>
+            {monthOptions.map(option => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
-
-      <MonthSelector 
-        currentMonth={currentMonth}
-        onMonthChange={handleMonthChange}
-      />
 
       <TransactionList 
         currentMonth={currentMonth}
