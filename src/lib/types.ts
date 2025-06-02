@@ -4,6 +4,7 @@ export type CategoryType = {
   name: string;
   budgeted: number;
   subcategories: SubcategoryType[];
+  milestone_id?: string | null;
 }
 
 export type SubcategoryType = {

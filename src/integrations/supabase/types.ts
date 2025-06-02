@@ -14,6 +14,7 @@ export type Database = {
           budgeted: number | null
           created_at: string | null
           id: string
+          milestone_id: string | null
           name: string
           updated_at: string | null
           user_id: string
@@ -22,6 +23,7 @@ export type Database = {
           budgeted?: number | null
           created_at?: string | null
           id?: string
+          milestone_id?: string | null
           name: string
           updated_at?: string | null
           user_id: string
@@ -30,11 +32,20 @@ export type Database = {
           budgeted?: number | null
           created_at?: string | null
           id?: string
+          milestone_id?: string | null
           name?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "categories_milestone_id_fkey"
+            columns: ["milestone_id"]
+            isOneToOne: false
+            referencedRelation: "milestones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       milestones: {
         Row: {

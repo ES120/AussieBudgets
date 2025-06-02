@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -40,15 +41,10 @@ export const supabaseService = {
       }
       
       console.log('Created new budget:', newBudget);
-      
-      return {
-        month,
-        income: 0,
-        categories: []
-      };
     }
 
-    console.log('Found existing budget:', budget);
+    // Get active milestones that should become categories
+    await this.createMilestoneCategories();
 
     // Get categories and subcategories for this user
     const { data: categories, error: categoriesError } = await supabase
@@ -72,6 +68,7 @@ export const supabaseService = {
       id: cat.id,
       name: cat.name,
       budgeted: Number(cat.budgeted || 0),
+      milestone_id: cat.milestone_id,
       subcategories: cat.subcategories.map((sub: any) => ({
         id: sub.id,
         name: sub.name,
@@ -81,10 +78,63 @@ export const supabaseService = {
     }));
 
     return {
-      month: budget.month,
-      income: Number(budget.income || 0),
+      month: budget?.month || month,
+      income: Number(budget?.income || 0),
       categories: transformedCategories
     };
+  },
+
+  async createMilestoneCategories(): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Get active milestones (where target_date hasn't passed)
+    const { data: activeMilestones, error: milestonesError } = await supabase
+      .from('milestones')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('target_date', new Date().toISOString().split('T')[0]);
+
+    if (milestonesError) {
+      console.error('Error getting milestones:', milestonesError);
+      return;
+    }
+
+    if (!activeMilestones) return;
+
+    // Check which milestones already have categories
+    const { data: existingCategories, error: existingError } = await supabase
+      .from('categories')
+      .select('milestone_id')
+      .eq('user_id', user.id)
+      .not('milestone_id', 'is', null);
+
+    if (existingError) {
+      console.error('Error getting existing milestone categories:', existingError);
+      return;
+    }
+
+    const existingMilestoneIds = new Set(existingCategories?.map(cat => cat.milestone_id) || []);
+
+    // Create categories for milestones that don't have them yet
+    const milestonesToCreate = activeMilestones.filter(milestone => 
+      !existingMilestoneIds.has(milestone.id)
+    );
+
+    for (const milestone of milestonesToCreate) {
+      const { error: createError } = await supabase
+        .from('categories')
+        .insert({
+          name: `🎯 ${milestone.name}`,
+          budgeted: milestone.current_amount,
+          milestone_id: milestone.id,
+          user_id: user.id
+        });
+
+      if (createError) {
+        console.error('Error creating milestone category:', createError);
+      }
+    }
   },
 
   async saveMonthlyBudget(budget: MonthlyBudget): Promise<void> {
@@ -132,6 +182,7 @@ export const supabaseService = {
       id: data.id, 
       name: data.name,
       budgeted: Number(data.budgeted || 0),
+      milestone_id: data.milestone_id,
       subcategories: [] 
     };
   },
