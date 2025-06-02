@@ -29,7 +29,7 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
   // Flatten all subcategories with their spending data
   const allSubcategories: ExtendedSubcategory[] = categories.flatMap(category => 
     category.subcategories.map(subcategory => ({
-      ...subcategory, // This spreads all properties including spent, remaining, status
+      ...subcategory,
       categoryName: category.name,
       categoryColor: getStatusColor(subcategory.status)
     }))
