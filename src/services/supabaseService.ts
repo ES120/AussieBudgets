@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -46,16 +45,14 @@ export const supabaseService = {
     // Create or update milestone categories based on active milestones
     await this.createMilestoneCategory();
 
-    // Get categories with their monthly budget allocations
-    const { data: categories, error: categoriesError } = await supabase
+    // Get all categories for this user
+    const { data: allCategories, error: categoriesError } = await supabase
       .from('categories')
       .select(`
         *,
-        subcategories (*),
-        monthly_category_budgets!inner(budgeted)
+        subcategories (*)
       `)
       .eq('user_id', user.id)
-      .eq('monthly_category_budgets.month', month)
       .order('created_at');
 
     if (categoriesError) {
@@ -63,22 +60,16 @@ export const supabaseService = {
       throw categoriesError;
     }
 
-    // Also get categories that don't have monthly budgets yet
-    const { data: categoriesWithoutBudgets, error: noBudgetError } = await supabase
-      .from('categories')
-      .select(`
-        *,
-        subcategories (*)
-      `)
+    // Get monthly category budgets
+    const { data: monthlyCategoryBudgets, error: categoryBudgetError } = await supabase
+      .from('monthly_category_budgets')
+      .select('*')
       .eq('user_id', user.id)
-      .not('id', 'in', `(${(categories || []).map(c => `'${c.id}'`).join(',') || "''"})`)
-      .order('created_at');
+      .eq('month', month);
 
-    if (noBudgetError) {
-      console.error('Error getting categories without budgets:', noBudgetError);
+    if (categoryBudgetError) {
+      console.error('Error getting monthly category budgets:', categoryBudgetError);
     }
-
-    const allCategories = [...(categories || []), ...(categoriesWithoutBudgets || [])];
 
     // Get monthly subcategory budgets
     const { data: monthlySubcategoryBudgets, error: subBudgetError } = await supabase
@@ -91,6 +82,11 @@ export const supabaseService = {
       console.error('Error getting monthly subcategory budgets:', subBudgetError);
     }
 
+    // Create maps for quick lookup
+    const categoryBudgetMap = new Map(
+      (monthlyCategoryBudgets || []).map(budget => [budget.category_id, budget.budgeted])
+    );
+
     const subcategoryBudgetMap = new Map(
       (monthlySubcategoryBudgets || []).map(budget => [budget.subcategory_id, budget.budgeted])
     );
@@ -98,10 +94,10 @@ export const supabaseService = {
     console.log('Found categories:', allCategories);
 
     // Transform the data to match our types
-    const transformedCategories: CategoryType[] = allCategories.map(cat => ({
+    const transformedCategories: CategoryType[] = (allCategories || []).map(cat => ({
       id: cat.id,
       name: cat.name,
-      budgeted: Number(cat.monthly_category_budgets?.[0]?.budgeted || 0),
+      budgeted: Number(categoryBudgetMap.get(cat.id) || 0),
       milestone_id: cat.milestone_id,
       subcategories: cat.subcategories.map((sub: any) => ({
         id: sub.id,
@@ -352,7 +348,7 @@ export const supabaseService = {
         month: month,
         budgeted: budgeted
       }, {
-        onConflict: 'user_id,category_id,month'
+        onConflict: 'category_id,month'
       });
 
     if (error) throw error;
@@ -424,7 +420,7 @@ export const supabaseService = {
         month: month,
         budgeted: budgeted
       }, {
-        onConflict: 'user_id,subcategory_id,month'
+        onConflict: 'subcategory_id,month'
       });
 
     if (error) throw error;
