@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -17,6 +18,16 @@ interface CategoryDialogProps {
 }
 
 const CATEGORY_EXAMPLES = ["Wants", "Needs", "Bills", "Savings", "Transportation", "Food", "Housing"];
+
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  "Wants": "Non-essential purchases like entertainment, dining out, hobbies, and luxury items",
+  "Needs": "Essential expenses for basic living like groceries, utilities, and healthcare",
+  "Bills": "Fixed monthly payments like rent, insurance, phone, and subscriptions",
+  "Savings": "Money set aside for emergency funds, investments, and future goals",
+  "Transportation": "Car payments, gas, public transit, maintenance, and travel expenses",
+  "Food": "Groceries, meal planning, and essential food purchases",
+  "Housing": "Rent, mortgage, utilities, maintenance, and home-related expenses"
+};
 
 export default function CategoryDialog({
   currentMonth,
@@ -127,6 +138,21 @@ export default function CategoryDialog({
     setNewCategoryBudget("");
   };
 
+  const getCurrentCategoryName = () => {
+    return editCategory ? editCategory.name : newCategoryName;
+  };
+
+  const getDescriptionText = () => {
+    const categoryName = getCurrentCategoryName();
+    const description = CATEGORY_DESCRIPTIONS[categoryName];
+    if (description) {
+      return `${editCategory ? "Update" : "Create"} a ${categoryName.toLowerCase()} category. ${description}.`;
+    }
+    return editCategory 
+      ? "Update the details of this category." 
+      : "Create a new budget category to organize your subcategories.";
+  };
+
   return (
     <Dialog open={categoryDialogOpen} onOpenChange={(open) => {
       setCategoryDialogOpen(open);
@@ -142,9 +168,7 @@ export default function CategoryDialog({
         <DialogHeader>
           <DialogTitle>{editCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
           <DialogDescription>
-            {editCategory 
-              ? "Update the details of this category." 
-              : "Create a new budget category to organize your subcategories."}
+            {getDescriptionText()}
           </DialogDescription>
         </DialogHeader>
         
