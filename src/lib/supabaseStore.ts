@@ -56,6 +56,24 @@ export const getTransactions = async (month: string): Promise<TransactionType[]>
   }
 };
 
+export const updateCategoryMonthlyBudget = async (categoryId: string, month: string, budgeted: number): Promise<void> => {
+  try {
+    await supabaseService.updateCategoryMonthlyBudget(categoryId, month, budgeted);
+  } catch (error) {
+    console.error('Error updating category monthly budget:', error);
+    throw error;
+  }
+};
+
+export const updateSubcategoryMonthlyBudget = async (subcategoryId: string, month: string, budgeted: number): Promise<void> => {
+  try {
+    await supabaseService.updateSubcategoryMonthlyBudget(subcategoryId, month, budgeted);
+  } catch (error) {
+    console.error('Error updating subcategory monthly budget:', error);
+    throw error;
+  }
+};
+
 export const getMonthlyAnalytics = async (month: string) => {
   try {
     const budget = await getBudget(month);

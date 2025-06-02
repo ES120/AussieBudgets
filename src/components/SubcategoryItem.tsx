@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Edit, Trash2 } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
+import { updateSubcategoryMonthlyBudget } from "@/lib/supabaseStore";
 import { formatCurrency, generateId, getProgressBarColor } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
@@ -42,11 +43,16 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
     
     setSaving(true);
     try {
-      await supabaseService.createSubcategory(
+      const subcategory = await supabaseService.createSubcategory(
         categoryId, 
         subcategoryName.trim(), 
         parseFloat(subcategoryAmount) || 0
       );
+      
+      // Set the monthly budget for this subcategory
+      if (parseFloat(subcategoryAmount) > 0) {
+        await updateSubcategoryMonthlyBudget(subcategory.id, currentMonth, parseFloat(subcategoryAmount));
+      }
       
       setSubcategoryName("");
       setSubcategoryAmount("");
@@ -82,6 +88,9 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
     setSaving(true);
     try {
       await supabaseService.updateSubcategory(editSubcategory);
+      
+      // Update the monthly budget for this subcategory
+      await updateSubcategoryMonthlyBudget(editSubcategory.id, currentMonth, editSubcategory.budgeted);
       
       setEditSubcategory(null);
       setDialogOpen(false);
@@ -170,7 +179,7 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
               </div>
               
               <div>
-                <Label htmlFor="subcategoryAmount">Budget Amount</Label>
+                <Label htmlFor="subcategoryAmount">Budget Amount for {currentMonth}</Label>
                 <Input
                   id="subcategoryAmount"
                   type="number"

@@ -37,6 +37,7 @@ export default function CategoryList({
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Budget Categories</h2>
         <CategoryDialog 
+          currentMonth={currentMonth}
           editCategory={editCategory}
           setEditCategory={setEditCategory}
           onUpdate={onUpdate}

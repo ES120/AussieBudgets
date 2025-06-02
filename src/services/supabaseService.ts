@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -45,14 +46,16 @@ export const supabaseService = {
     // Create or update milestone categories based on active milestones
     await this.createMilestoneCategory();
 
-    // Get categories and subcategories for this user
+    // Get categories with their monthly budget allocations
     const { data: categories, error: categoriesError } = await supabase
       .from('categories')
       .select(`
         *,
-        subcategories (*)
+        subcategories (*),
+        monthly_category_budgets!inner(budgeted)
       `)
       .eq('user_id', user.id)
+      .eq('monthly_category_budgets.month', month)
       .order('created_at');
 
     if (categoriesError) {
@@ -60,18 +63,50 @@ export const supabaseService = {
       throw categoriesError;
     }
 
-    console.log('Found categories:', categories);
+    // Also get categories that don't have monthly budgets yet
+    const { data: categoriesWithoutBudgets, error: noBudgetError } = await supabase
+      .from('categories')
+      .select(`
+        *,
+        subcategories (*)
+      `)
+      .eq('user_id', user.id)
+      .not('id', 'in', `(${(categories || []).map(c => `'${c.id}'`).join(',') || "''"})`)
+      .order('created_at');
+
+    if (noBudgetError) {
+      console.error('Error getting categories without budgets:', noBudgetError);
+    }
+
+    const allCategories = [...(categories || []), ...(categoriesWithoutBudgets || [])];
+
+    // Get monthly subcategory budgets
+    const { data: monthlySubcategoryBudgets, error: subBudgetError } = await supabase
+      .from('monthly_subcategory_budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('month', month);
+
+    if (subBudgetError) {
+      console.error('Error getting monthly subcategory budgets:', subBudgetError);
+    }
+
+    const subcategoryBudgetMap = new Map(
+      (monthlySubcategoryBudgets || []).map(budget => [budget.subcategory_id, budget.budgeted])
+    );
+
+    console.log('Found categories:', allCategories);
 
     // Transform the data to match our types
-    const transformedCategories: CategoryType[] = (categories || []).map(cat => ({
+    const transformedCategories: CategoryType[] = allCategories.map(cat => ({
       id: cat.id,
       name: cat.name,
-      budgeted: Number(cat.budgeted || 0),
+      budgeted: Number(cat.monthly_category_budgets?.[0]?.budgeted || 0),
       milestone_id: cat.milestone_id,
       subcategories: cat.subcategories.map((sub: any) => ({
         id: sub.id,
         name: sub.name,
-        budgeted: Number(sub.budgeted || 0),
+        budgeted: Number(subcategoryBudgetMap.get(sub.id) || 0),
         categoryId: sub.category_id
       }))
     }));
@@ -163,24 +198,14 @@ export const supabaseService = {
     let milestonesCategoryId: string;
 
     if (existingCategory) {
-      // Update existing category budget with precise amount
       milestonesCategoryId = existingCategory.id;
-      const { error: updateError } = await supabase
-        .from('categories')
-        .update({ budgeted: totalMonthlySavings })
-        .eq('id', milestonesCategoryId);
-
-      if (updateError) {
-        console.error('Error updating milestone category budget:', updateError);
-        return;
-      }
     } else {
       // Create new Milestones category
       const { data: newCategory, error: createError } = await supabase
         .from('categories')
         .insert({
           name: 'Milestones',
-          budgeted: totalMonthlySavings,
+          budgeted: 0, // Keep the global budgeted at 0 since we're using monthly budgets now
           user_id: user.id
         })
         .select('id')
@@ -214,24 +239,14 @@ export const supabaseService = {
       const subcategoryName = milestone.name;
       const existingSub = existingSubcategoryMap.get(subcategoryName);
 
-      if (existingSub) {
-        // Update existing subcategory with precise amount
-        const { error: updateSubError } = await supabase
-          .from('subcategories')
-          .update({ budgeted: milestone.monthlySavingsNeeded })
-          .eq('id', existingSub.id);
-
-        if (updateSubError) {
-          console.error('Error updating milestone subcategory:', updateSubError);
-        }
-      } else {
+      if (!existingSub) {
         // Create new subcategory with precise amount
         const { error: createSubError } = await supabase
           .from('subcategories')
           .insert({
             category_id: milestonesCategoryId,
             name: subcategoryName,
-            budgeted: milestone.monthlySavingsNeeded,
+            budgeted: 0, // Keep global budgeted at 0 since we're using monthly budgets
             user_id: user.id
           });
 
@@ -293,7 +308,7 @@ export const supabaseService = {
       .from('categories')
       .insert({ 
         name,
-        budgeted,
+        budgeted: 0, // Keep global budgeted at 0 since we're using monthly budgets
         user_id: user.id
       })
       .select()
@@ -303,7 +318,7 @@ export const supabaseService = {
     return { 
       id: data.id, 
       name: data.name,
-      budgeted: Number(data.budgeted || 0),
+      budgeted: budgeted, // Use the provided budgeted amount for the current month
       milestone_id: data.milestone_id,
       subcategories: [] 
     };
@@ -316,11 +331,29 @@ export const supabaseService = {
     const { error } = await supabase
       .from('categories')
       .update({ 
-        name: category.name,
-        budgeted: category.budgeted
+        name: category.name
+        // Don't update budgeted here since it's now month-specific
       })
       .eq('id', category.id)
       .eq('user_id', user.id);
+
+    if (error) throw error;
+  },
+
+  async updateCategoryMonthlyBudget(categoryId: string, month: string, budgeted: number): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('monthly_category_budgets')
+      .upsert({
+        user_id: user.id,
+        category_id: categoryId,
+        month: month,
+        budgeted: budgeted
+      }, {
+        onConflict: 'user_id,category_id,month'
+      });
 
     if (error) throw error;
   },
@@ -348,7 +381,7 @@ export const supabaseService = {
       .insert({
         category_id: categoryId,
         name,
-        budgeted,
+        budgeted: 0, // Keep global budgeted at 0 since we're using monthly budgets
         user_id: user.id
       })
       .select()
@@ -358,7 +391,7 @@ export const supabaseService = {
     return { 
       id: data.id,
       name: data.name,
-      budgeted: Number(data.budgeted),
+      budgeted: budgeted, // Use the provided budgeted amount for the current month
       categoryId: data.category_id
     };
   },
@@ -370,11 +403,29 @@ export const supabaseService = {
     const { error } = await supabase
       .from('subcategories')
       .update({
-        name: subcategory.name,
-        budgeted: subcategory.budgeted
+        name: subcategory.name
+        // Don't update budgeted here since it's now month-specific
       })
       .eq('id', subcategory.id)
       .eq('user_id', user.id);
+
+    if (error) throw error;
+  },
+
+  async updateSubcategoryMonthlyBudget(subcategoryId: string, month: string, budgeted: number): Promise<void> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { error } = await supabase
+      .from('monthly_subcategory_budgets')
+      .upsert({
+        user_id: user.id,
+        subcategory_id: subcategoryId,
+        month: month,
+        budgeted: budgeted
+      }, {
+        onConflict: 'user_id,subcategory_id,month'
+      });
 
     if (error) throw error;
   },

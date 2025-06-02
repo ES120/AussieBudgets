@@ -110,6 +110,82 @@ export type Database = {
         }
         Relationships: []
       }
+      monthly_category_budgets: {
+        Row: {
+          budgeted: number
+          category_id: string
+          created_at: string
+          id: string
+          month: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budgeted?: number
+          category_id: string
+          created_at?: string
+          id?: string
+          month: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budgeted?: number
+          category_id?: string
+          created_at?: string
+          id?: string
+          month?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_category_budgets_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_subcategory_budgets: {
+        Row: {
+          budgeted: number
+          created_at: string
+          id: string
+          month: string
+          subcategory_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budgeted?: number
+          created_at?: string
+          id?: string
+          month: string
+          subcategory_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budgeted?: number
+          created_at?: string
+          id?: string
+          month?: string
+          subcategory_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_subcategory_budgets_subcategory_id_fkey"
+            columns: ["subcategory_id"]
+            isOneToOne: false
+            referencedRelation: "subcategories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null

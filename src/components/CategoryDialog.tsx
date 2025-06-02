@@ -7,15 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { CategoryType } from "@/lib/types";
 import { supabaseService } from "@/services/supabaseService";
+import { updateCategoryMonthlyBudget } from "@/lib/supabaseStore";
 import { useToast } from "@/hooks/use-toast";
 
 interface CategoryDialogProps {
+  currentMonth: string;
   editCategory: CategoryType | null;
   setEditCategory: (category: CategoryType | null) => void;
   onUpdate: () => void;
 }
 
 export default function CategoryDialog({
+  currentMonth,
   editCategory,
   setEditCategory,
   onUpdate
@@ -46,7 +49,13 @@ export default function CategoryDialog({
 
     setSaving(true);
     try {
-      await supabaseService.createCategory(newCategoryName.trim(), parseFloat(newCategoryBudget) || 0);
+      const category = await supabaseService.createCategory(newCategoryName.trim(), parseFloat(newCategoryBudget) || 0);
+      
+      // Set the monthly budget for this category
+      if (parseFloat(newCategoryBudget) > 0) {
+        await updateCategoryMonthlyBudget(category.id, currentMonth, parseFloat(newCategoryBudget));
+      }
+      
       setNewCategoryName("");
       setNewCategoryBudget("");
       setCategoryDialogOpen(false);
@@ -80,6 +89,10 @@ export default function CategoryDialog({
     setSaving(true);
     try {
       await supabaseService.updateCategory(editCategory);
+      
+      // Update the monthly budget for this category
+      await updateCategoryMonthlyBudget(editCategory.id, currentMonth, editCategory.budgeted);
+      
       setEditCategory(null);
       setCategoryDialogOpen(false);
       onUpdate();
@@ -120,7 +133,9 @@ export default function CategoryDialog({
         <DialogHeader>
           <DialogTitle>{editCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
           <DialogDescription>
-            {editCategory ? "Update the details of this category." : "Create a new budget category to organize your subcategories."}
+            {editCategory 
+              ? "Update the details of this category." 
+              : "Create a new budget category to organize your subcategories."}
           </DialogDescription>
         </DialogHeader>
         
@@ -141,13 +156,16 @@ export default function CategoryDialog({
           </div>
           
           <div>
-            <Label htmlFor="categoryBudget">Category Budget</Label>
+            <Label htmlFor="categoryBudget">Category Budget for {currentMonth}</Label>
             <Input 
               id="categoryBudget" 
               type="number" 
               min="0" 
               step="0.01" 
-              value={editCategory ? editCategory.budgeted.toString() : newCategoryBudget} 
+              value={editCategory 
+                ? editCategory.budgeted.toString() 
+                : newCategoryBudget
+              } 
               onChange={(e) => editCategory ? setEditCategory({
                 ...editCategory,
                 budgeted: parseFloat(e.target.value) || 0
@@ -167,7 +185,7 @@ export default function CategoryDialog({
             Cancel
           </Button>
           <Button onClick={editCategory ? handleUpdateCategory : handleAddCategory} disabled={saving}>
-            {saving ? "Saving..." : editCategory ? "Save Changes" : "Add Category"}
+            {saving ? "Saving..." : (editCategory ? "Save Changes" : "Add Category")}
           </Button>
         </DialogFooter>
       </DialogContent>
