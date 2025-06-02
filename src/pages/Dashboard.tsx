@@ -32,7 +32,7 @@ export default function Dashboard() {
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
       </div>;
   }
-  return <div className="space-y-6 py-[6px]">
+  return <div className="space-y-6 py-0 my-[20px]">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your financial status</p>
