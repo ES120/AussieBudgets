@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabaseService } from "@/services/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import SubcategoryItem from "./SubcategoryItem";
+
 interface CategoryListProps {
   currentMonth: string;
   categories: Array<CategoryType & {
@@ -26,6 +27,7 @@ interface CategoryListProps {
   }>;
   onUpdate: () => void;
 }
+
 export default function CategoryList({
   currentMonth,
   categories,
@@ -162,8 +164,8 @@ export default function CategoryList({
             You don't have any budget categories yet. Add a category to get started.
           </AlertDescription>
         </Alert> : <Accordion type="multiple" className="space-y-4">
-          {categories.map(category => <AccordionItem key={category.id} value={category.id} className="border rounded-lg overflow-hidden">
-              <AccordionTrigger className="px-4 py-3 hover:no-underline bg-white/[0.31]">
+          {categories.map(category => <AccordionItem key={category.id} value={category.id} className="border rounded-lg overflow-hidden bg-white">
+              <AccordionTrigger className="px-4 py-3 hover:no-underline bg-white">
                 <div className="flex items-center justify-between w-full pr-4">
                   <div className="flex items-center">
                     <span className="font-medium">{category.name}</span>
@@ -200,7 +202,7 @@ export default function CategoryList({
                 </div>
               </AccordionTrigger>
               
-              <AccordionContent className="px-4 py-2">
+              <AccordionContent className="px-4 py-2 bg-white">
                 <div className="space-y-3">
                   <SubcategoryItem currentMonth={currentMonth} categoryId={category.id} subcategories={category.subcategories} onUpdate={onUpdate} />
                 </div>
