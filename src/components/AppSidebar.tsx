@@ -59,24 +59,23 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
 
   return (
-    <Sidebar>
-      <SidebarHeader className="p-6">
-        <div className="flex items-center gap-2">
+    <Sidebar collapsible="icon">
+      <SidebarHeader className="p-4">
+        <div className="flex items-center gap-3">
           <img 
             alt="Aussie Budget Logo" 
             className="w-8 h-8 rounded-lg object-cover flex-shrink-0" 
             src="/lovable-uploads/2d670f60-c893-4471-9f33-8432097bb6c4.png" 
           />
           {!isCollapsed && (
-            <div className="flex flex-col">
-              <span className="font-semibold text-lg">Aussie Budget</span>
-              <span className="text-xs text-muted-foreground">Smart Financial Tracking</span>
+            <div className="flex flex-col min-w-0">
+              <span className="font-semibold text-lg truncate">Aussie Budget</span>
+              <span className="text-xs text-muted-foreground truncate">Smart Financial Tracking</span>
             </div>
           )}
-        </div>
-        
-        <div className="flex items-center justify-between mt-4">
-          <SidebarTrigger className="h-8 w-8" />
+          <div className="ml-auto">
+            <SidebarTrigger className="h-6 w-6" />
+          </div>
         </div>
         
         {showMonthSelector && !isCollapsed && (
@@ -99,12 +98,16 @@ export function AppSidebar() {
       
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>NAVIGATION</SidebarGroupLabel>
+          {!isCollapsed && <SidebarGroupLabel>NAVIGATION</SidebarGroupLabel>}
           <SidebarGroupContent>
             <SidebarMenu>
               {navigationItems.map(item => (
                 <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                  <SidebarMenuButton 
+                    asChild 
+                    isActive={location.pathname === item.url}
+                    tooltip={isCollapsed ? item.title : undefined}
+                  >
                     <Link to={item.url}>
                       <item.icon />
                       <span>{item.title}</span>
@@ -119,8 +122,8 @@ export function AppSidebar() {
       
       <SidebarFooter className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-gray-600 font-medium text-sm">
+          <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center flex-shrink-0">
+            <span className="text-gray-600 font-medium text-xs">
               {user?.email ? getInitials(user.email) : 'U'}
             </span>
           </div>
