@@ -71,11 +71,6 @@ export default function CategoryItem({
         <div className="flex items-center justify-between w-full pr-4">
           <div className="flex items-center gap-2">
             <span className="font-medium">{category.name}</span>
-            {category.milestone_id && (
-              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                Milestone Goal
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-6">
             <div className="text-right">
