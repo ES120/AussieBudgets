@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -17,13 +18,13 @@ export const supabaseService = {
       throw error;
     }
 
-    return data as CategoryType;
+    return { ...data, subcategories: [] } as CategoryType;
   },
 
   async updateCategory(category: CategoryType): Promise<CategoryType> {
     const { data, error } = await supabase
       .from('categories')
-      .update(category)
+      .update({ name: category.name, milestone_id: category.milestone_id })
       .eq('id', category.id)
       .select()
       .single();
@@ -33,7 +34,7 @@ export const supabaseService = {
       throw error;
     }
 
-    return data as CategoryType;
+    return { ...data, subcategories: category.subcategories } as CategoryType;
   },
 
   async deleteCategory(id: string): Promise<void> {
@@ -44,6 +45,62 @@ export const supabaseService = {
 
     if (error) {
       console.error('Error deleting category:', error);
+      throw error;
+    }
+  },
+
+  async createSubcategory(categoryId: string, name: string, budgeted: number): Promise<SubcategoryType> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+
+    const { data, error } = await supabase
+      .from('subcategories')
+      .insert([{ user_id: user.id, category_id: categoryId, name }])
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating subcategory:', error);
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      budgeted: 0,
+      categoryId: data.category_id
+    } as SubcategoryType;
+  },
+
+  async updateSubcategory(subcategory: SubcategoryType): Promise<SubcategoryType> {
+    const { data, error } = await supabase
+      .from('subcategories')
+      .update({ name: subcategory.name, category_id: subcategory.categoryId })
+      .eq('id', subcategory.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating subcategory:', error);
+      throw error;
+    }
+
+    return {
+      id: data.id,
+      name: data.name,
+      budgeted: subcategory.budgeted,
+      categoryId: data.category_id
+    } as SubcategoryType;
+  },
+
+  async deleteSubcategory(id: string): Promise<void> {
+    const { error } = await supabase
+      .from('subcategories')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting subcategory:', error);
       throw error;
     }
   },
@@ -101,9 +158,9 @@ export const supabaseService = {
         }))
       }));
 
-      // Get income for this month
+      // Get income for this month using monthly_budgets table
       const { data: incomeData } = await supabase
-        .from('monthly_income')
+        .from('monthly_budgets')
         .select('income')
         .eq('user_id', user.id)
         .eq('month', month)
@@ -131,9 +188,9 @@ export const supabaseService = {
       }))
     }));
 
-    // Get income for this month
+    // Get income for this month using monthly_budgets table
     const { data: incomeData } = await supabase
-      .from('monthly_income')
+      .from('monthly_budgets')
       .select('income')
       .eq('user_id', user.id)
       .eq('month', month)
@@ -150,9 +207,9 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    // Upsert monthly income
+    // Upsert monthly income using monthly_budgets table
     const { error: incomeError } = await supabase
-      .from('monthly_income')
+      .from('monthly_budgets')
       .upsert([{ user_id: user.id, month: budget.month, income: budget.income }], { onConflict: 'user_id, month' });
 
     if (incomeError) {
@@ -165,7 +222,7 @@ export const supabaseService = {
       // Upsert category
       const { error: categoryError } = await supabase
         .from('categories')
-        .upsert({ ...category, user_id: user.id }, { onConflict: 'id' });
+        .upsert({ id: category.id, name: category.name, user_id: user.id, milestone_id: category.milestone_id }, { onConflict: 'id' });
 
       if (categoryError) {
         console.error('Error saving category:', categoryError);
@@ -176,7 +233,7 @@ export const supabaseService = {
         // Upsert subcategory
         const { error: subcategoryError } = await supabase
           .from('subcategories')
-          .upsert({ ...subcategory, category_id: category.id }, { onConflict: 'id' });
+          .upsert({ id: subcategory.id, name: subcategory.name, category_id: category.id, user_id: user.id }, { onConflict: 'id' });
 
         if (subcategoryError) {
           console.error('Error saving subcategory:', subcategoryError);
@@ -202,14 +259,26 @@ export const supabaseService = {
       return [];
     }
 
-    return data as TransactionType[];
+    return data.map(transaction => ({
+      id: transaction.id,
+      amount: transaction.amount,
+      date: transaction.date,
+      type: transaction.type as "income" | "expense",
+      subcategoryId: transaction.subcategory_id,
+      description: transaction.description || ""
+    })) as TransactionType[];
   },
 
   async saveTransaction(transaction: TransactionType): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const transactionToSave = { ...transaction, user_id: user.id };
+    const transactionToSave = { 
+      ...transaction, 
+      user_id: user.id,
+      subcategory_id: transaction.subcategoryId,
+      subcategoryId: undefined
+    };
 
     const { data, error } = await supabase
       .from('transactions')
@@ -241,8 +310,8 @@ export const supabaseService = {
     const { error } = await supabase
       .from('monthly_category_budgets')
       .upsert(
-        [{ category_id: categoryId, month: month, budgeted: budgeted }],
-        { onConflict: ['category_id', 'month'] }
+        [{ category_id: categoryId, month: month, budgeted: budgeted, user_id: user.id }],
+        { onConflict: 'category_id, month' }
       );
 
     if (error) {
@@ -259,8 +328,8 @@ export const supabaseService = {
     const { error } = await supabase
       .from('monthly_subcategory_budgets')
       .upsert(
-        [{ subcategory_id: subcategoryId, month: month, budgeted: budgeted }],
-        { onConflict: ['subcategory_id', 'month'] }
+        [{ subcategory_id: subcategoryId, month: month, budgeted: budgeted, user_id: user.id }],
+        { onConflict: 'subcategory_id, month' }
       );
 
     if (error) {
