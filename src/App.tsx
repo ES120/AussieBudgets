@@ -14,46 +14,57 @@ import Transactions from "./pages/Transactions";
 import Milestones from "./pages/Milestones";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import { useState } from "react";
 
-const queryClient = new QueryClient();
+const App = () => {
+  // Create QueryClient inside the component to ensure proper React context
+  const [queryClient] = useState(() => new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 5 * 60 * 1000, // 5 minutes
+        retry: 3,
+      },
+    },
+  }));
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route 
-              path="/*" 
-              element={
-                <ProtectedRoute>
-                  <SidebarProvider>
-                    <div className="min-h-screen flex w-full">
-                      <AppSidebar />
-                      <SidebarInset className="flex-1">
-                        <main className="flex-1 p-6 pt-8 mt-5">
-                          <Routes>
-                            <Route path="/" element={<Dashboard />} />
-                            <Route path="/budget" element={<BudgetTracker />} />
-                            <Route path="/transactions" element={<Transactions />} />
-                            <Route path="/milestones" element={<Milestones />} />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </main>
-                      </SidebarInset>
-                    </div>
-                  </SidebarProvider>
-                </ProtectedRoute>
-              } 
-            />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route 
+                path="/*" 
+                element={
+                  <ProtectedRoute>
+                    <SidebarProvider>
+                      <div className="min-h-screen flex w-full">
+                        <AppSidebar />
+                        <SidebarInset className="flex-1">
+                          <main className="flex-1 p-6 pt-8 mt-5">
+                            <Routes>
+                              <Route path="/" element={<Dashboard />} />
+                              <Route path="/budget" element={<BudgetTracker />} />
+                              <Route path="/transactions" element={<Transactions />} />
+                              <Route path="/milestones" element={<Milestones />} />
+                              <Route path="*" element={<NotFound />} />
+                            </Routes>
+                          </main>
+                        </SidebarInset>
+                      </div>
+                    </SidebarProvider>
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
