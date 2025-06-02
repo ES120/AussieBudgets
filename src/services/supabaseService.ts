@@ -42,8 +42,8 @@ export const supabaseService = {
       console.log('Created new budget:', newBudget);
     }
 
-    // Get active milestones that should become categories
-    await this.createMilestoneCategories();
+    // Create or update milestone categories based on active milestones
+    await this.createMilestoneCategory();
 
     // Get categories and subcategories for this user
     const { data: categories, error: categoriesError } = await supabase
@@ -83,7 +83,7 @@ export const supabaseService = {
     };
   },
 
-  async createMilestoneCategories(): Promise<void> {
+  async createMilestoneCategory(): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -99,46 +99,145 @@ export const supabaseService = {
       return;
     }
 
-    if (!activeMilestones) return;
+    if (!activeMilestones || activeMilestones.length === 0) {
+      // No active milestones, remove milestone category if it exists
+      const { error: deleteError } = await supabase
+        .from('categories')
+        .delete()
+        .eq('name', 'Milestones')
+        .eq('user_id', user.id);
 
-    // Check which milestones already have categories
-    const { data: existingCategories, error: existingError } = await supabase
-      .from('categories')
-      .select('milestone_id')
-      .eq('user_id', user.id)
-      .not('milestone_id', 'is', null);
-
-    if (existingError) {
-      console.error('Error getting existing milestone categories:', existingError);
+      if (deleteError) {
+        console.error('Error removing milestone category:', deleteError);
+      }
       return;
     }
 
-    const existingMilestoneIds = new Set(existingCategories?.map(cat => cat.milestone_id) || []);
-
-    // Create categories for milestones that don't have them yet
-    const milestonesToCreate = activeMilestones.filter(milestone => 
-      !existingMilestoneIds.has(milestone.id)
-    );
-
-    for (const milestone of milestonesToCreate) {
-      // Calculate required monthly savings
+    // Calculate total monthly savings needed for all milestones
+    let totalMonthlySavings = 0;
+    const milestoneData = activeMilestones.map(milestone => {
       const startDate = new Date(milestone.start_date);
       const targetDate = new Date(milestone.target_date);
       const monthsRemaining = Math.max(1, Math.ceil((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
       const remainingAmount = milestone.target_amount - milestone.current_amount;
       const monthlySavingsNeeded = Math.max(0, remainingAmount / monthsRemaining);
+      
+      totalMonthlySavings += monthlySavingsNeeded;
+      
+      return {
+        ...milestone,
+        monthlySavingsNeeded
+      };
+    });
 
-      const { error: createError } = await supabase
+    // Check if Milestones category already exists
+    const { data: existingCategory, error: existingError } = await supabase
+      .from('categories')
+      .select('id')
+      .eq('name', 'Milestones')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (existingError) {
+      console.error('Error checking existing milestone category:', existingError);
+      return;
+    }
+
+    let milestonesCategoryId: string;
+
+    if (existingCategory) {
+      // Update existing category budget
+      milestonesCategoryId = existingCategory.id;
+      const { error: updateError } = await supabase
+        .from('categories')
+        .update({ budgeted: totalMonthlySavings })
+        .eq('id', milestonesCategoryId);
+
+      if (updateError) {
+        console.error('Error updating milestone category budget:', updateError);
+        return;
+      }
+    } else {
+      // Create new Milestones category
+      const { data: newCategory, error: createError } = await supabase
         .from('categories')
         .insert({
-          name: `🎯 ${milestone.name}`,
-          budgeted: monthlySavingsNeeded,
-          milestone_id: milestone.id,
+          name: 'Milestones',
+          budgeted: totalMonthlySavings,
           user_id: user.id
-        });
+        })
+        .select('id')
+        .single();
 
       if (createError) {
         console.error('Error creating milestone category:', createError);
+        return;
+      }
+
+      milestonesCategoryId = newCategory.id;
+    }
+
+    // Get existing milestone subcategories
+    const { data: existingSubcategories, error: subError } = await supabase
+      .from('subcategories')
+      .select('*')
+      .eq('category_id', milestonesCategoryId);
+
+    if (subError) {
+      console.error('Error getting existing subcategories:', subError);
+      return;
+    }
+
+    const existingSubcategoryIds = new Set(existingSubcategories?.map(sub => sub.name) || []);
+
+    // Create or update subcategories for each milestone
+    for (const milestone of milestoneData) {
+      const subcategoryName = milestone.name;
+
+      if (existingSubcategoryIds.has(subcategoryName)) {
+        // Update existing subcategory
+        const existingSub = existingSubcategories?.find(sub => sub.name === subcategoryName);
+        if (existingSub) {
+          const { error: updateSubError } = await supabase
+            .from('subcategories')
+            .update({ budgeted: milestone.monthlySavingsNeeded })
+            .eq('id', existingSub.id);
+
+          if (updateSubError) {
+            console.error('Error updating milestone subcategory:', updateSubError);
+          }
+        }
+      } else {
+        // Create new subcategory
+        const { error: createSubError } = await supabase
+          .from('subcategories')
+          .insert({
+            category_id: milestonesCategoryId,
+            name: subcategoryName,
+            budgeted: milestone.monthlySavingsNeeded,
+            user_id: user.id
+          });
+
+        if (createSubError) {
+          console.error('Error creating milestone subcategory:', createSubError);
+        }
+      }
+    }
+
+    // Remove subcategories for milestones that no longer exist
+    const activeMilestoneNames = new Set(milestoneData.map(m => m.name));
+    const subcategoriesToRemove = existingSubcategories?.filter(sub => 
+      !activeMilestoneNames.has(sub.name)
+    ) || [];
+
+    for (const subToRemove of subcategoriesToRemove) {
+      const { error: deleteSubError } = await supabase
+        .from('subcategories')
+        .delete()
+        .eq('id', subToRemove.id);
+
+      if (deleteSubError) {
+        console.error('Error removing old milestone subcategory:', deleteSubError);
       }
     }
   },
