@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -128,88 +127,88 @@ export const supabaseService = {
 
     console.log('Getting budget for month:', month, 'user:', user.id);
 
-    // Get categories with their monthly budgets and subcategories
-    const { data: categories, error } = await supabase
+    // First get all categories for the user
+    const { data: categories, error: categoriesError } = await supabase
       .from('categories')
-      .select(`
-        *,
-        monthly_category_budgets!left(budgeted),
-        subcategories(
-          *,
-          monthly_subcategory_budgets!left(budgeted)
-        )
-      `)
-      .eq('user_id', user.id)
-      .eq('monthly_category_budgets.month', month)
-      .eq('subcategories.monthly_subcategory_budgets.month', month);
+      .select('*')
+      .eq('user_id', user.id);
 
-    if (error) {
-      console.error('Error getting categories with budgets:', error);
-      
-      // If no monthly budgets exist, get categories without budgets
-      const { data: categoriesWithoutBudgets, error: categoriesError } = await supabase
-        .from('categories')
-        .select(`
-          *,
-          subcategories(*)
-        `)
-        .eq('user_id', user.id);
-
-      if (categoriesError) {
-        console.error('Error getting categories without budgets:', categoriesError);
-        throw categoriesError;
-      }
-
-      console.log('Found categories without budgets:', categoriesWithoutBudgets);
-      
-      const formattedCategories = (categoriesWithoutBudgets || []).map(cat => ({
-        id: cat.id,
-        name: cat.name,
-        budgeted: 0,
-        milestone_id: cat.milestone_id,
-        subcategories: (cat.subcategories || []).map((sub: any) => ({
-          id: sub.id,
-          name: sub.name,
-          budgeted: 0,
-          categoryId: sub.category_id
-        }))
-      }));
-
-      // Get income for this month using monthly_budgets table
-      const { data: incomeData } = await supabase
-        .from('monthly_budgets')
-        .select('income')
-        .eq('user_id', user.id)
-        .eq('month', month)
-        .single();
-
-      return {
-        month,
-        income: incomeData?.income || 0,
-        categories: formattedCategories
-      };
+    if (categoriesError) {
+      console.error('Error getting categories:', categoriesError);
+      throw categoriesError;
     }
 
-    console.log('Found categories with budgets:', categories);
-    
+    console.log('Found categories:', categories);
+
+    // Get category monthly budgets for this month
+    const { data: categoryBudgets, error: categoryBudgetsError } = await supabase
+      .from('monthly_category_budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('month', month);
+
+    if (categoryBudgetsError) {
+      console.error('Error getting category budgets:', categoryBudgetsError);
+    }
+
+    console.log('Found category budgets:', categoryBudgets);
+
+    // Get all subcategories for the user
+    const { data: subcategories, error: subcategoriesError } = await supabase
+      .from('subcategories')
+      .select('*')
+      .eq('user_id', user.id);
+
+    if (subcategoriesError) {
+      console.error('Error getting subcategories:', subcategoriesError);
+    }
+
+    console.log('Found subcategories:', subcategories);
+
+    // Get subcategory monthly budgets for this month
+    const { data: subcategoryBudgets, error: subcategoryBudgetsError } = await supabase
+      .from('monthly_subcategory_budgets')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('month', month);
+
+    if (subcategoryBudgetsError) {
+      console.error('Error getting subcategory budgets:', subcategoryBudgetsError);
+    }
+
+    console.log('Found subcategory budgets:', subcategoryBudgets);
+
+    // Create a map for easy lookup
+    const categoryBudgetMap = new Map();
+    (categoryBudgets || []).forEach(budget => {
+      categoryBudgetMap.set(budget.category_id, budget.budgeted);
+    });
+
+    const subcategoryBudgetMap = new Map();
+    (subcategoryBudgets || []).forEach(budget => {
+      subcategoryBudgetMap.set(budget.subcategory_id, budget.budgeted);
+    });
+
+    // Build the formatted categories with their subcategories and budgets
     const formattedCategories = (categories || []).map(cat => {
-      const categoryBudget = cat.monthly_category_budgets?.find((budget: any) => budget.month === month)?.budgeted || 0;
+      const categoryBudget = categoryBudgetMap.get(cat.id) || 0;
       
+      // Get subcategories for this category
+      const categorySubcategories = (subcategories || [])
+        .filter(sub => sub.category_id === cat.id)
+        .map(sub => ({
+          id: sub.id,
+          name: sub.name,
+          budgeted: subcategoryBudgetMap.get(sub.id) || 0,
+          categoryId: sub.category_id
+        }));
+
       return {
         id: cat.id,
         name: cat.name,
         budgeted: categoryBudget,
         milestone_id: cat.milestone_id,
-        subcategories: (cat.subcategories || []).map((sub: any) => {
-          const subcategoryBudget = sub.monthly_subcategory_budgets?.find((budget: any) => budget.month === month)?.budgeted || 0;
-          
-          return {
-            id: sub.id,
-            name: sub.name,
-            budgeted: subcategoryBudget,
-            categoryId: sub.category_id
-          };
-        })
+        subcategories: categorySubcategories
       };
     });
 
