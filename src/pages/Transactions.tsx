@@ -1,57 +1,46 @@
 
-import { useState, useEffect } from "react";
-import { getCurrentMonth, getTransactions } from "@/lib/supabaseStore";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabaseService } from "@/services/supabaseService";
+import { getCurrentMonth, getMonthlyAnalytics } from "@/lib/store";
 import TransactionList from "@/components/TransactionList";
+import BudgetHeader from "@/components/BudgetHeader";
 
 export default function Transactions() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const transactionsData = await getTransactions(currentMonth);
-        setTransactions(transactionsData);
-      } catch (error) {
-        console.error('Error loading transactions:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadData();
-  }, [currentMonth]);
+  const { data: monthlyBudget, isLoading } = useQuery({
+    queryKey: ['monthly-budget', currentMonth],
+    queryFn: () => supabaseService.getMonthlyBudget(currentMonth),
+  });
 
-  const handleDataUpdate = async () => {
-    try {
-      const transactionsData = await getTransactions(currentMonth);
-      setTransactions(transactionsData);
-    } catch (error) {
-      console.error('Error updating transactions:', error);
-    }
-  };
+  const { data: transactions } = useQuery({
+    queryKey: ['transactions', currentMonth],
+    queryFn: () => supabaseService.getTransactions(currentMonth),
+  });
 
-  if (loading) {
+  const analytics = getMonthlyAnalytics(monthlyBudget, transactions || []);
+
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Expenses / Transactions</h1>
-        <p className="text-muted-foreground">Record and manage your transaction history</p>
-      </div>
-
-      <TransactionList 
+      <BudgetHeader 
         currentMonth={currentMonth}
-        transactions={transactions}
-        onUpdate={handleDataUpdate}
+        setCurrentMonth={setCurrentMonth}
+        analytics={analytics}
+      />
+      
+      <TransactionList 
+        transactions={transactions || []} 
+        monthlyBudget={monthlyBudget} 
+        currentMonth={currentMonth}
       />
     </div>
   );
