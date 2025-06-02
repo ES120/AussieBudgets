@@ -1,8 +1,6 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentMonth, getMonthlyAnalytics } from "@/lib/supabaseStore";
-
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [analytics, setAnalytics] = useState({
@@ -15,7 +13,6 @@ export default function Dashboard() {
     needsAllocation: 0
   });
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
@@ -28,20 +25,14 @@ export default function Dashboard() {
         setLoading(false);
       }
     };
-    
     loadData();
   }, [currentMonth]);
-
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
+    return <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6 py-0">
       <div>
         <h1 className="text-3xl font-bold">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your financial status</p>
@@ -147,6 +138,5 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
+    </div>;
 }
