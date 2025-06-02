@@ -18,7 +18,7 @@ export const supabaseService = {
       throw error;
     }
 
-    return { ...data, subcategories: [] } as CategoryType;
+    return { ...data, subcategories: [], budgeted: 0 } as CategoryType;
   },
 
   async updateCategory(category: CategoryType): Promise<CategoryType> {
@@ -34,7 +34,7 @@ export const supabaseService = {
       throw error;
     }
 
-    return { ...data, subcategories: category.subcategories } as CategoryType;
+    return { ...data, subcategories: category.subcategories, budgeted: category.budgeted } as CategoryType;
   },
 
   async deleteCategory(id: string): Promise<void> {
@@ -259,7 +259,7 @@ export const supabaseService = {
       return [];
     }
 
-    return data.map(transaction => ({
+    return (data || []).map(transaction => ({
       id: transaction.id,
       amount: transaction.amount,
       date: transaction.date,
