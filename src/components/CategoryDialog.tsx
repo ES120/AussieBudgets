@@ -67,13 +67,21 @@ export default function CategoryDialog({
       return;
     }
 
+    const budgetAmount = parseFloat(newCategoryBudget) || 0;
+
     setSaving(true);
     try {
-      const category = await supabaseService.createCategory(newCategoryName.trim(), parseFloat(newCategoryBudget) || 0);
+      console.log('Creating category with budget:', { name: newCategoryName.trim(), budget: budgetAmount, month: currentMonth });
       
-      // Set the monthly budget for this category
-      if (parseFloat(newCategoryBudget) > 0) {
-        await updateCategoryMonthlyBudget(category.id, currentMonth, parseFloat(newCategoryBudget));
+      // Create the category first
+      const category = await supabaseService.createCategory(newCategoryName.trim(), 0);
+      console.log('Category created:', category);
+      
+      // Then set the monthly budget for this category if a budget was specified
+      if (budgetAmount > 0) {
+        console.log('Setting monthly budget for category:', category.id, currentMonth, budgetAmount);
+        await updateCategoryMonthlyBudget(category.id, currentMonth, budgetAmount);
+        console.log('Monthly budget set successfully');
       }
       
       setNewCategoryName("");
@@ -108,10 +116,16 @@ export default function CategoryDialog({
 
     setSaving(true);
     try {
+      console.log('Updating category:', editCategory);
+      
+      // Update the category details
       await supabaseService.updateCategory(editCategory);
+      console.log('Category updated successfully');
       
       // Update the monthly budget for this category
+      console.log('Updating monthly budget:', editCategory.id, currentMonth, editCategory.budgeted);
       await updateCategoryMonthlyBudget(editCategory.id, currentMonth, editCategory.budgeted);
+      console.log('Monthly budget updated successfully');
       
       setEditCategory(null);
       setCategoryDialogOpen(false);

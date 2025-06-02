@@ -133,10 +133,10 @@ export const supabaseService = {
       .from('categories')
       .select(`
         *,
-        monthly_category_budgets!inner(budgeted),
+        monthly_category_budgets!left(budgeted),
         subcategories(
           *,
-          monthly_subcategory_budgets!inner(budgeted)
+          monthly_subcategory_budgets!left(budgeted)
         )
       `)
       .eq('user_id', user.id)
@@ -160,7 +160,7 @@ export const supabaseService = {
         throw categoriesError;
       }
 
-      console.log('Found categories:', categoriesWithoutBudgets);
+      console.log('Found categories without budgets:', categoriesWithoutBudgets);
       
       const formattedCategories = (categoriesWithoutBudgets || []).map(cat => ({
         id: cat.id,
@@ -190,20 +190,28 @@ export const supabaseService = {
       };
     }
 
-    console.log('Found categories:', categories);
+    console.log('Found categories with budgets:', categories);
     
-    const formattedCategories = (categories || []).map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      budgeted: cat.monthly_category_budgets?.[0]?.budgeted || 0,
-      milestone_id: cat.milestone_id,
-      subcategories: (cat.subcategories || []).map((sub: any) => ({
-        id: sub.id,
-        name: sub.name,
-        budgeted: sub.monthly_subcategory_budgets?.[0]?.budgeted || 0,
-        categoryId: sub.category_id
-      }))
-    }));
+    const formattedCategories = (categories || []).map(cat => {
+      const categoryBudget = cat.monthly_category_budgets?.find((budget: any) => budget.month === month)?.budgeted || 0;
+      
+      return {
+        id: cat.id,
+        name: cat.name,
+        budgeted: categoryBudget,
+        milestone_id: cat.milestone_id,
+        subcategories: (cat.subcategories || []).map((sub: any) => {
+          const subcategoryBudget = sub.monthly_subcategory_budgets?.find((budget: any) => budget.month === month)?.budgeted || 0;
+          
+          return {
+            id: sub.id,
+            name: sub.name,
+            budgeted: subcategoryBudget,
+            categoryId: sub.category_id
+          };
+        })
+      };
+    });
 
     // Get income for this month using monthly_budgets table
     const { data: incomeData } = await supabase
