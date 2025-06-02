@@ -96,47 +96,6 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Budget Overview</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span>Income</span>
-                <span className="font-semibold">${analytics.income.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Budgeted</span>
-                <span className="font-semibold">${analytics.totalBudgeted.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span>Spent</span>
-                <span className="font-semibold">${analytics.totalSpent.toLocaleString()}</span>
-              </div>
-              <div className="border-t pt-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">Remaining</span>
-                  <span className={`font-bold ${analytics.remaining >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${analytics.remaining.toLocaleString()}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="py-0">
-            <CardTitle className="text-lg">Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-muted-foreground text-sm">
-              View detailed transactions and manage your budget categories in their respective sections.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      
     </div>;
 }
