@@ -99,7 +99,7 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Budget Overview</CardTitle>
+            <CardTitle className="text-lg">Budget Overview</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -129,7 +129,7 @@ export default function Dashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle className="text-lg">Recent Activity</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-muted-foreground">
