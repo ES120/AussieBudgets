@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -218,17 +219,22 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const startDate = `${month}-01`;
-    const endDate = `${month}-31`;
+    // Calculate the correct start and end dates for the month
+    const [year, monthNum] = month.split('-');
+    const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
+    const endDate = new Date(parseInt(year), parseInt(monthNum), 0); // Last day of the month
 
-    console.log('Getting transactions for month:', month, 'user:', user.id);
+    const startDateStr = startDate.toISOString().split('T')[0];
+    const endDateStr = endDate.toISOString().split('T')[0];
+
+    console.log('Getting transactions for month:', month, 'user:', user.id, 'date range:', startDateStr, 'to', endDateStr);
 
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('user_id', user.id)
-      .gte('date', startDate)
-      .lte('date', endDate)
+      .gte('date', startDateStr)
+      .lte('date', endDateStr)
       .order('date', { ascending: false });
 
     if (error) {
