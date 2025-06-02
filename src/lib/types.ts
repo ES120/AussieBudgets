@@ -2,6 +2,7 @@
 export type CategoryType = {
   id: string;
   name: string;
+  budgeted: number;
   subcategories: SubcategoryType[];
 }
 

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,12 +35,12 @@ export default function CategoryList({
   onUpdate
 }: CategoryListProps) {
   const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryBudget, setNewCategoryBudget] = useState("");
   const [editCategory, setEditCategory] = useState<CategoryType | null>(null);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
       toast({
@@ -51,8 +52,9 @@ export default function CategoryList({
     }
     setSaving(true);
     try {
-      await supabaseService.createCategory(newCategoryName.trim());
+      await supabaseService.createCategory(newCategoryName.trim(), parseFloat(newCategoryBudget) || 0);
       setNewCategoryName("");
+      setNewCategoryBudget("");
       setCategoryDialogOpen(false);
       onUpdate();
       toast({
@@ -70,6 +72,7 @@ export default function CategoryList({
       setSaving(false);
     }
   };
+
   const handleUpdateCategory = async () => {
     if (!editCategory || !editCategory.name.trim()) {
       toast({
@@ -87,7 +90,7 @@ export default function CategoryList({
       onUpdate();
       toast({
         title: "Category Updated",
-        description: `Category has been renamed successfully.`
+        description: `Category has been updated successfully.`
       });
     } catch (error) {
       console.error('Error updating category:', error);
@@ -100,6 +103,7 @@ export default function CategoryList({
       setSaving(false);
     }
   };
+
   const handleDeleteCategory = async (categoryId: string) => {
     try {
       await supabaseService.deleteCategory(categoryId);
@@ -117,10 +121,21 @@ export default function CategoryList({
       });
     }
   };
-  return <div className="space-y-4">
+
+  const resetDialogState = () => {
+    setEditCategory(null);
+    setNewCategoryName("");
+    setNewCategoryBudget("");
+  };
+
+  return (
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold">Budget Categories</h2>
-        <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
+        <Dialog open={categoryDialogOpen} onOpenChange={(open) => {
+          setCategoryDialogOpen(open);
+          if (!open) resetDialogState();
+        }}>
           <DialogTrigger asChild>
             <Button size="sm">
               <Plus className="mr-1 h-4 w-4" />
@@ -131,24 +146,50 @@ export default function CategoryList({
             <DialogHeader>
               <DialogTitle>{editCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
               <DialogDescription>
-                {editCategory ? "Update the name of this category." : "Create a new budget category to organize your subcategories."}
+                {editCategory ? "Update the details of this category." : "Create a new budget category to organize your subcategories."}
               </DialogDescription>
             </DialogHeader>
             
-            <div className="py-4">
-              <Label htmlFor="categoryName">Category Name</Label>
-              <Input id="categoryName" value={editCategory ? editCategory.name : newCategoryName} onChange={e => editCategory ? setEditCategory({
-              ...editCategory,
-              name: e.target.value
-            }) : setNewCategoryName(e.target.value)} className="mt-2" placeholder="e.g., Housing, Transportation, Food" disabled={saving} />
+            <div className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="categoryName">Category Name</Label>
+                <Input 
+                  id="categoryName" 
+                  value={editCategory ? editCategory.name : newCategoryName} 
+                  onChange={e => editCategory ? setEditCategory({
+                    ...editCategory,
+                    name: e.target.value
+                  }) : setNewCategoryName(e.target.value)} 
+                  className="mt-2" 
+                  placeholder="e.g., Housing, Transportation, Food" 
+                  disabled={saving} 
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="categoryBudget">Category Budget</Label>
+                <Input 
+                  id="categoryBudget" 
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editCategory ? editCategory.budgeted.toString() : newCategoryBudget} 
+                  onChange={e => editCategory ? setEditCategory({
+                    ...editCategory,
+                    budgeted: parseFloat(e.target.value) || 0
+                  }) : setNewCategoryBudget(e.target.value)} 
+                  className="mt-2" 
+                  placeholder="0.00" 
+                  disabled={saving} 
+                />
+              </div>
             </div>
             
             <DialogFooter>
               <Button variant="outline" onClick={() => {
-              setCategoryDialogOpen(false);
-              setEditCategory(null);
-              setNewCategoryName("");
-            }} disabled={saving}>
+                setCategoryDialogOpen(false);
+                resetDialogState();
+              }} disabled={saving}>
                 Cancel
               </Button>
               <Button onClick={editCategory ? handleUpdateCategory : handleAddCategory} disabled={saving}>
@@ -159,12 +200,16 @@ export default function CategoryList({
         </Dialog>
       </div>
       
-      {categories.length === 0 ? <Alert>
+      {categories.length === 0 ? (
+        <Alert>
           <AlertDescription>
             You don't have any budget categories yet. Add a category to get started.
           </AlertDescription>
-        </Alert> : <Accordion type="multiple" className="space-y-4">
-          {categories.map(category => <AccordionItem key={category.id} value={category.id} className="border rounded-lg overflow-hidden bg-white">
+        </Alert>
+      ) : (
+        <Accordion type="multiple" className="space-y-4">
+          {categories.map(category => (
+            <AccordionItem key={category.id} value={category.id} className="border rounded-lg overflow-hidden bg-white">
               <AccordionTrigger className="px-4 py-3 hover:no-underline bg-white">
                 <div className="flex items-center justify-between w-full pr-4">
                   <div className="flex items-center">
@@ -173,7 +218,10 @@ export default function CategoryList({
                   <div className="flex items-center gap-6">
                     <div className="text-right">
                       <div className="text-sm text-muted-foreground">
-                        {formatCurrency(category.totalSpent)} of {formatCurrency(category.totalBudgeted)}
+                        Budget: {formatCurrency(category.budgeted)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatCurrency(category.totalSpent)} of {formatCurrency(category.totalBudgeted)} (subcategories)
                       </div>
                       
                       <div className={`text-sm font-medium ${category.remaining >= 0 ? 'text-budget-under' : 'text-budget-over'}`}>
@@ -183,18 +231,18 @@ export default function CategoryList({
                     
                     <div className="flex items-center gap-1">
                       <Button variant="ghost" size="icon" onClick={e => {
-                  e.stopPropagation();
-                  setEditCategory(category);
-                  setCategoryDialogOpen(true);
-                }}>
+                        e.stopPropagation();
+                        setEditCategory(category);
+                        setCategoryDialogOpen(true);
+                      }}>
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="icon" onClick={e => {
-                  e.stopPropagation();
-                  if (confirm("Are you sure you want to delete this category? All subcategories will be removed.")) {
-                    handleDeleteCategory(category.id);
-                  }
-                }}>
+                        e.stopPropagation();
+                        if (confirm("Are you sure you want to delete this category? All subcategories will be removed.")) {
+                          handleDeleteCategory(category.id);
+                        }
+                      }}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
@@ -204,10 +252,18 @@ export default function CategoryList({
               
               <AccordionContent className="px-4 py-2 bg-white">
                 <div className="space-y-3">
-                  <SubcategoryItem currentMonth={currentMonth} categoryId={category.id} subcategories={category.subcategories} onUpdate={onUpdate} />
+                  <SubcategoryItem 
+                    currentMonth={currentMonth} 
+                    categoryId={category.id} 
+                    subcategories={category.subcategories} 
+                    onUpdate={onUpdate} 
+                  />
                 </div>
               </AccordionContent>
-            </AccordionItem>)}
-        </Accordion>}
-    </div>;
+            </AccordionItem>
+          ))}
+        </Accordion>
+      )}
+    </div>
+  );
 }

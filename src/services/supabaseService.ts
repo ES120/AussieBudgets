@@ -72,6 +72,7 @@ export const supabaseService = {
     const transformedCategories: CategoryType[] = (categories || []).map(cat => ({
       id: cat.id,
       name: cat.name,
+      budgeted: Number(cat.budgeted || 0),
       subcategories: cat.subcategories.map((sub: any) => ({
         id: sub.id,
         name: sub.name,
@@ -113,7 +114,7 @@ export const supabaseService = {
   },
 
   // Category operations
-  async createCategory(name: string): Promise<CategoryType> {
+  async createCategory(name: string, budgeted: number = 0): Promise<CategoryType> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -121,6 +122,7 @@ export const supabaseService = {
       .from('categories')
       .insert({ 
         name,
+        budgeted,
         user_id: user.id
       })
       .select()
@@ -129,7 +131,8 @@ export const supabaseService = {
     if (error) throw error;
     return { 
       id: data.id, 
-      name: data.name, 
+      name: data.name,
+      budgeted: Number(data.budgeted || 0),
       subcategories: [] 
     };
   },
@@ -140,7 +143,10 @@ export const supabaseService = {
 
     const { error } = await supabase
       .from('categories')
-      .update({ name: category.name })
+      .update({ 
+        name: category.name,
+        budgeted: category.budgeted
+      })
       .eq('id', category.id)
       .eq('user_id', user.id);
 
