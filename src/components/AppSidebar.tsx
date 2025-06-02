@@ -54,7 +54,7 @@ export function AppSidebar() {
         <div className="flex items-center gap-2">
           <img alt="Aussie Budget Logo" className="w-8 h-8 rounded-lg object-cover" src="/lovable-uploads/2d670f60-c893-4471-9f33-8432097bb6c4.png" />
           <div>
-            <h2 className="font-semibold text-lg">Aussie Budget</h2>
+            
           </div>
         </div>
         
