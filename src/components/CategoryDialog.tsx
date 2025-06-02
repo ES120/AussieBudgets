@@ -150,7 +150,7 @@ export default function CategoryDialog({
                 name: e.target.value
               }) : setNewCategoryName(e.target.value)} 
               className="mt-2" 
-              placeholder="e.g., Housing, Transportation, Food" 
+              placeholder="e.g., Bills, Wants, Needs, Subscriptions" 
               disabled={saving} 
             />
           </div>
