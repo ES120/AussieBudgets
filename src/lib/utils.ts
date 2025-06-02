@@ -98,14 +98,18 @@ export function calculateCategoryTotals(category: CategoryType, transactions: Tr
     };
   });
 
+  // Use subcategory budgets for totalBudgeted (what was allocated to subcategories)
   const totalBudgeted = subcategoriesWithTotals.reduce((sum, s) => sum + s.budgeted, 0);
   const totalSpent = subcategoriesWithTotals.reduce((sum, s) => sum + s.spent, 0);
+
+  // Use the category's budget for the remaining calculation (what the user actually allocated to this category)
+  const remaining = category.budgeted - totalSpent;
 
   return {
     ...category,
     subcategories: subcategoriesWithTotals,
     totalBudgeted,
     totalSpent,
-    remaining: totalBudgeted - totalSpent
+    remaining
   };
 }
