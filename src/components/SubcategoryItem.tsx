@@ -223,6 +223,10 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
             const percentUsed = subcategory.budgeted > 0 
               ? Math.min((subcategory.spent / subcategory.budgeted) * 100, 100)
               : 0;
+            
+            const isOverBudget = subcategory.remaining < 0;
+            const displayAmount = Math.abs(subcategory.remaining);
+            const displayText = isOverBudget ? "overspent" : "remaining";
               
             return (
               <div key={subcategory.id} className="border rounded-lg p-3">
@@ -269,12 +273,8 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
                     ></div>
                   </div>
                   
-                  <p className={`text-sm mt-1 ${
-                    subcategory.status === "over" ? "text-budget-over" :
-                    subcategory.status === "warning" ? "text-budget-warning" :
-                    subcategory.status === "under" ? "text-budget-under" : "text-budget-neutral"
-                  }`}>
-                    {formatCurrency(subcategory.remaining)} remaining
+                  <p className={`text-sm mt-1 font-medium ${isOverBudget ? 'text-red-600' : 'text-green-700'}`}>
+                    {formatCurrency(displayAmount)} {displayText}
                   </p>
                 </div>
               </div>
