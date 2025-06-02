@@ -17,18 +17,6 @@ interface CategoryDialogProps {
   onUpdate: () => void;
 }
 
-const CATEGORY_EXAMPLES = ["Wants", "Needs", "Bills", "Savings", "Transportation", "Food", "Housing"];
-
-const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  "Wants": "Non-essential purchases like entertainment, dining out, hobbies, and luxury items",
-  "Needs": "Essential expenses for basic living like groceries, utilities, and healthcare",
-  "Bills": "Fixed monthly payments like rent, insurance, phone, and subscriptions",
-  "Savings": "Money set aside for emergency funds, investments, and future goals",
-  "Transportation": "Car payments, gas, public transit, maintenance, and travel expenses",
-  "Food": "Groceries, meal planning, and essential food purchases",
-  "Housing": "Rent, mortgage, utilities, maintenance, and home-related expenses"
-};
-
 export default function CategoryDialog({
   currentMonth,
   editCategory,
@@ -37,29 +25,17 @@ export default function CategoryDialog({
 }: CategoryDialogProps) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryBudget, setNewCategoryBudget] = useState("");
-  const [editCategoryName, setEditCategoryName] = useState("");
-  const [editCategoryBudget, setEditCategoryBudget] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Open dialog when editCategory is set and populate edit form
+  // Open dialog when editCategory is set
   useEffect(() => {
     if (editCategory) {
       console.log('Opening edit dialog for category:', editCategory);
-      setEditCategoryName(editCategory.name);
-      setEditCategoryBudget(editCategory.budgeted.toString());
       setCategoryDialogOpen(true);
     }
   }, [editCategory]);
-
-  // Set a random example category name when dialog opens for new category
-  useEffect(() => {
-    if (categoryDialogOpen && !editCategory && !newCategoryName) {
-      const randomExample = CATEGORY_EXAMPLES[Math.floor(Math.random() * CATEGORY_EXAMPLES.length)];
-      setNewCategoryName(randomExample);
-    }
-  }, [categoryDialogOpen, editCategory, newCategoryName]);
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {
@@ -71,21 +47,13 @@ export default function CategoryDialog({
       return;
     }
 
-    const budgetAmount = parseFloat(newCategoryBudget) || 0;
-
     setSaving(true);
     try {
-      console.log('Creating category with budget:', { name: newCategoryName.trim(), budget: budgetAmount, month: currentMonth });
+      const category = await supabaseService.createCategory(newCategoryName.trim(), parseFloat(newCategoryBudget) || 0);
       
-      // Create the category first
-      const category = await supabaseService.createCategory(newCategoryName.trim(), 0);
-      console.log('Category created:', category);
-      
-      // Then set the monthly budget for this category if a budget was specified
-      if (budgetAmount > 0) {
-        console.log('Setting monthly budget for category:', category.id, currentMonth, budgetAmount);
-        await updateCategoryMonthlyBudget(category.id, currentMonth, budgetAmount);
-        console.log('Monthly budget set successfully');
+      // Set the monthly budget for this category
+      if (parseFloat(newCategoryBudget) > 0) {
+        await updateCategoryMonthlyBudget(category.id, currentMonth, parseFloat(newCategoryBudget));
       }
       
       setNewCategoryName("");
@@ -109,7 +77,7 @@ export default function CategoryDialog({
   };
 
   const handleUpdateCategory = async () => {
-    if (!editCategory || !editCategoryName.trim()) {
+    if (!editCategory || !editCategory.name.trim()) {
       toast({
         title: "Error",
         description: "Please enter a category name",
@@ -118,21 +86,12 @@ export default function CategoryDialog({
       return;
     }
 
-    const budgetAmount = parseFloat(editCategoryBudget) || 0;
-
     setSaving(true);
     try {
-      console.log('Updating category:', { ...editCategory, name: editCategoryName, budgeted: budgetAmount });
-      
-      // Update the category details
-      const updatedCategory = { ...editCategory, name: editCategoryName };
-      await supabaseService.updateCategory(updatedCategory);
-      console.log('Category updated successfully');
+      await supabaseService.updateCategory(editCategory);
       
       // Update the monthly budget for this category
-      console.log('Updating monthly budget:', editCategory.id, currentMonth, budgetAmount);
-      await updateCategoryMonthlyBudget(editCategory.id, currentMonth, budgetAmount);
-      console.log('Monthly budget updated successfully');
+      await updateCategoryMonthlyBudget(editCategory.id, currentMonth, editCategory.budgeted);
       
       setEditCategory(null);
       setCategoryDialogOpen(false);
@@ -157,23 +116,6 @@ export default function CategoryDialog({
     setEditCategory(null);
     setNewCategoryName("");
     setNewCategoryBudget("");
-    setEditCategoryName("");
-    setEditCategoryBudget("");
-  };
-
-  const getCurrentCategoryName = () => {
-    return editCategory ? editCategoryName : newCategoryName;
-  };
-
-  const getDescriptionText = () => {
-    const categoryName = getCurrentCategoryName();
-    const description = CATEGORY_DESCRIPTIONS[categoryName];
-    if (description) {
-      return `${editCategory ? "Update" : "Create"} a ${categoryName.toLowerCase()} category. ${description}.`;
-    }
-    return editCategory 
-      ? "Update the details of this category." 
-      : "Create a new budget category to organize your subcategories.";
   };
 
   return (
@@ -191,7 +133,9 @@ export default function CategoryDialog({
         <DialogHeader>
           <DialogTitle>{editCategory ? "Edit Category" : "Add New Category"}</DialogTitle>
           <DialogDescription>
-            {getDescriptionText()}
+            {editCategory 
+              ? "Update the details of this category." 
+              : "Create a new budget category to organize your subcategories."}
           </DialogDescription>
         </DialogHeader>
         
@@ -200,10 +144,13 @@ export default function CategoryDialog({
             <Label htmlFor="categoryName">Category Name</Label>
             <Input 
               id="categoryName" 
-              value={editCategory ? editCategoryName : newCategoryName} 
-              onChange={(e) => editCategory ? setEditCategoryName(e.target.value) : setNewCategoryName(e.target.value)} 
+              value={editCategory ? editCategory.name : newCategoryName} 
+              onChange={(e) => editCategory ? setEditCategory({
+                ...editCategory,
+                name: e.target.value
+              }) : setNewCategoryName(e.target.value)} 
               className="mt-2" 
-              placeholder="e.g., Wants, Needs, Bills" 
+              placeholder="e.g., Housing, Transportation, Food" 
               disabled={saving} 
             />
           </div>
@@ -215,8 +162,14 @@ export default function CategoryDialog({
               type="number" 
               min="0" 
               step="0.01" 
-              value={editCategory ? editCategoryBudget : newCategoryBudget} 
-              onChange={(e) => editCategory ? setEditCategoryBudget(e.target.value) : setNewCategoryBudget(e.target.value)} 
+              value={editCategory 
+                ? editCategory.budgeted.toString() 
+                : newCategoryBudget
+              } 
+              onChange={(e) => editCategory ? setEditCategory({
+                ...editCategory,
+                budgeted: parseFloat(e.target.value) || 0
+              }) : setNewCategoryBudget(e.target.value)} 
               className="mt-2" 
               placeholder="0.00" 
               disabled={saving} 

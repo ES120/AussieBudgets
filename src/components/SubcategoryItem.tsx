@@ -15,7 +15,6 @@ import { SubcategoryType } from "@/lib/types";
 interface SubcategoryItemProps {
   currentMonth: string;
   categoryId: string;
-  categoryBudget: number;
   subcategories: Array<SubcategoryType & { 
     spent: number; 
     remaining: number;
@@ -24,32 +23,13 @@ interface SubcategoryItemProps {
   onUpdate: () => void;
 }
 
-export default function SubcategoryItem({ currentMonth, categoryId, categoryBudget, subcategories, onUpdate }: SubcategoryItemProps) {
+export default function SubcategoryItem({ currentMonth, categoryId, subcategories, onUpdate }: SubcategoryItemProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editSubcategory, setEditSubcategory] = useState<SubcategoryType | null>(null);
   const [subcategoryName, setSubcategoryName] = useState("");
   const [subcategoryAmount, setSubcategoryAmount] = useState("");
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
-
-  // Calculate total budgeted amount for existing subcategories
-  const totalSubcategoryBudgeted = subcategories.reduce((sum, sub) => sum + sub.budgeted, 0);
-
-  const validateBudgetAmount = (amount: number, isEdit: boolean = false) => {
-    const currentSubcategoryBudget = isEdit && editSubcategory ? editSubcategory.budgeted : 0;
-    const otherSubcategoriesTotal = totalSubcategoryBudgeted - currentSubcategoryBudget;
-    const availableBudget = categoryBudget - otherSubcategoriesTotal;
-    
-    if (amount > availableBudget) {
-      toast({
-        title: "Budget Exceeded",
-        description: `Amount cannot exceed available category budget of ${formatCurrency(availableBudget)}`,
-        variant: "destructive",
-      });
-      return false;
-    }
-    return true;
-  };
 
   const handleAddSubcategory = async () => {
     if (!subcategoryName.trim()) {
@@ -60,29 +40,18 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
       });
       return;
     }
-
-    const amount = parseFloat(subcategoryAmount) || 0;
-    if (!validateBudgetAmount(amount)) {
-      return;
-    }
     
     setSaving(true);
     try {
-      console.log('Creating subcategory:', { categoryId, name: subcategoryName.trim(), budgeted: amount });
-      
       const subcategory = await supabaseService.createSubcategory(
         categoryId, 
         subcategoryName.trim(), 
-        amount
+        parseFloat(subcategoryAmount) || 0
       );
       
-      console.log('Subcategory created:', subcategory);
-      
       // Set the monthly budget for this subcategory
-      if (amount > 0) {
-        console.log('Setting monthly budget:', { subcategoryId: subcategory.id, month: currentMonth, amount });
-        await updateSubcategoryMonthlyBudget(subcategory.id, currentMonth, amount);
-        console.log('Monthly budget set successfully');
+      if (parseFloat(subcategoryAmount) > 0) {
+        await updateSubcategoryMonthlyBudget(subcategory.id, currentMonth, parseFloat(subcategoryAmount));
       }
       
       setSubcategoryName("");
@@ -115,19 +84,12 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
       });
       return;
     }
-
-    if (!validateBudgetAmount(editSubcategory.budgeted, true)) {
-      return;
-    }
     
     setSaving(true);
     try {
-      console.log('Updating subcategory:', editSubcategory);
-      
       await supabaseService.updateSubcategory(editSubcategory);
       
       // Update the monthly budget for this subcategory
-      console.log('Updating monthly budget:', { subcategoryId: editSubcategory.id, month: currentMonth, amount: editSubcategory.budgeted });
       await updateSubcategoryMonthlyBudget(editSubcategory.id, currentMonth, editSubcategory.budgeted);
       
       setEditSubcategory(null);
@@ -152,7 +114,6 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
 
   const handleDeleteSubcategory = async (subcategoryId: string) => {
     try {
-      console.log('Deleting subcategory:', subcategoryId);
       await supabaseService.deleteSubcategory(subcategoryId);
       onUpdate();
       
@@ -176,17 +137,10 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
     setSubcategoryAmount("");
   };
 
-  const availableBudget = categoryBudget - totalSubcategoryBudgeted + (editSubcategory ? editSubcategory.budgeted : 0);
-
   return (
     <div>
       <div className="flex justify-between items-center mb-3">
-        <div>
-          <h3 className="font-medium">Subcategories</h3>
-          <p className="text-sm text-muted-foreground">
-            Available budget: {formatCurrency(availableBudget)} of {formatCurrency(categoryBudget)}
-          </p>
-        </div>
+        <h3 className="font-medium">Subcategories</h3>
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetDialogState();
@@ -204,10 +158,6 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
                 {editSubcategory 
                   ? "Update the details of this subcategory." 
                   : "Create a new subcategory within this budget category."}
-                <br />
-                <span className="text-sm text-muted-foreground">
-                  Available budget: {formatCurrency(availableBudget)}
-                </span>
               </DialogDescription>
             </DialogHeader>
             
@@ -234,7 +184,6 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
                   id="subcategoryAmount"
                   type="number"
                   min="0"
-                  max={availableBudget}
                   step="0.01"
                   value={editSubcategory 
                     ? editSubcategory.budgeted.toString() 
@@ -249,9 +198,6 @@ export default function SubcategoryItem({ currentMonth, categoryId, categoryBudg
                   placeholder="0.00"
                   disabled={saving}
                 />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Maximum: {formatCurrency(availableBudget)}
-                </p>
               </div>
             </div>
             

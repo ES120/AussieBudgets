@@ -2,10 +2,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Edit, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CategoryType, SubcategoryType } from "@/lib/types";
+import { formatCurrency } from "@/lib/utils";
+import { Edit, Trash2 } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
-import { formatCurrency, getProgressBarColor } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import SubcategoryItem from "./SubcategoryItem";
 
@@ -25,100 +26,107 @@ interface CategoryItemProps {
   onUpdate: () => void;
 }
 
-export default function CategoryItem({ currentMonth, category, onEdit, onUpdate }: CategoryItemProps) {
+export default function CategoryItem({
+  currentMonth,
+  category,
+  onEdit,
+  onUpdate
+}: CategoryItemProps) {
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const handleDeleteCategory = async () => {
-    if (!confirm("Are you sure you want to delete this category? This will also delete all subcategories.")) {
-      return;
-    }
-    
     try {
       await supabaseService.deleteCategory(category.id);
       onUpdate();
-      
       toast({
         title: "Category Deleted",
-        description: "Category and all subcategories have been removed."
+        description: "Category and all its subcategories have been removed."
       });
     } catch (error) {
       console.error('Error deleting category:', error);
       toast({
         title: "Error",
         description: "Failed to delete category. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
-  const percentUsed = category.totalBudgeted > 0 
-    ? Math.min((category.totalSpent / category.totalBudgeted) * 100, 100)
-    : 0;
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('Edit button clicked for category:', category);
+    onEdit(category);
+  };
 
   const isOverBudget = category.remaining < 0;
   const displayAmount = Math.abs(category.remaining);
   const displayText = isOverBudget ? "overspent" : "remaining";
 
   return (
-    <AccordionItem value={category.id} className="border rounded-lg">
-      <AccordionTrigger className="px-4 py-3 hover:no-underline">
-        <div className="flex justify-between items-center w-full">
-          <div className="text-left">
-            <h3 className="font-semibold">{category.name}</h3>
-            <p className="text-sm text-muted-foreground">
-              {formatCurrency(category.totalSpent)} of {formatCurrency(category.totalBudgeted)} 
-              {category.totalBudgeted > 0 && ` (${Math.round(percentUsed)}%)`}
-            </p>
+    <AccordionItem value={category.id} className="border rounded-lg overflow-hidden bg-white">
+      <AccordionTrigger className="px-4 py-3 hover:no-underline bg-white">
+        <div className="flex items-center justify-between w-full pr-4">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{category.name}</span>
+            {category.milestone_id && (
+              <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                Milestone Goal
+              </span>
+            )}
           </div>
-          
-          <div className="flex items-center gap-2 mr-2">
+          <div className="flex items-center gap-6">
             <div className="text-right">
-              <p className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-700'}`}>
+              <div className="text-sm text-muted-foreground">
+                Budget: {formatCurrency(category.budgeted)}
+              </div>
+              <div className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-700'}`}>
                 {formatCurrency(displayAmount)} {displayText}
-              </p>
+              </div>
             </div>
             
-            <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => onEdit(category)}
-              >
+            <div className="flex items-center gap-1">
+              <Button variant="ghost" size="icon" onClick={handleEditClick}>
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={handleDeleteCategory}
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the "{category.name}" category and all its subcategories.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
       </AccordionTrigger>
       
-      <AccordionContent className="px-4 pb-4">
-        {/* Progress bar */}
-        <div className="mb-4">
-          <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-            <div
-              className={`h-full transition-all duration-300 ${
-                isOverBudget ? 'bg-red-500' : 
-                percentUsed > 80 ? 'bg-yellow-500' : 'bg-green-500'
-              }`}
-              style={{ width: `${percentUsed}%` }}
-            ></div>
-          </div>
+      <AccordionContent className="px-4 py-2 bg-white">
+        <div className="space-y-3">
+          <SubcategoryItem 
+            currentMonth={currentMonth} 
+            categoryId={category.id} 
+            subcategories={category.subcategories} 
+            onUpdate={onUpdate} 
+          />
         </div>
-        
-        <SubcategoryItem 
-          currentMonth={currentMonth}
-          categoryId={category.id}
-          categoryBudget={category.totalBudgeted}
-          subcategories={category.subcategories}
-          onUpdate={onUpdate}
-        />
       </AccordionContent>
     </AccordionItem>
   );
