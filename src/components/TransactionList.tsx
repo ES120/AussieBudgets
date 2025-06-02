@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,12 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Load subcategories when dialog opens
+  // Load subcategories when component mounts or month changes
+  useEffect(() => {
+    loadSubcategories();
+  }, [currentMonth]);
+
+  // Load subcategories function
   const loadSubcategories = async () => {
     try {
       const budget = await getBudget(currentMonth);
@@ -213,7 +218,6 @@ export default function TransactionList({ currentMonth, transactions, onUpdate }
         <Dialog open={dialogOpen} onOpenChange={(open) => {
           setDialogOpen(open);
           if (!open) resetDialogState();
-          else loadSubcategories();
         }}>
           <DialogTrigger asChild>
             <Button>
