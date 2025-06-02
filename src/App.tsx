@@ -34,7 +34,7 @@ const App = () => (
                     <div className="min-h-screen flex w-full">
                       <AppSidebar />
                       <SidebarInset className="flex-1">
-                        <main className="flex-1 p-6">
+                        <main className="flex-1 p-6 pt-8">
                           <Routes>
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/budget" element={<BudgetTracker />} />
