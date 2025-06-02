@@ -224,6 +224,22 @@ export const supabaseService = {
     return false;
   },
 
+  async subcategoryHasTransactions(subcategoryId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data: transactions, error } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('subcategory_id', subcategoryId)
+      .eq('user_id', user.id)
+      .limit(1);
+
+    if (error) throw error;
+    
+    return (transactions && transactions.length > 0);
+  },
+
   async deleteCategory(categoryId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -346,6 +362,25 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // Delete all transactions linked to this subcategory
+    const { error: transError } = await supabase
+      .from('transactions')
+      .delete()
+      .eq('subcategory_id', subcategoryId)
+      .eq('user_id', user.id);
+
+    if (transError) throw transError;
+
+    // Delete monthly subcategory budgets
+    const { error: monthlySubError } = await supabase
+      .from('monthly_subcategory_budgets')
+      .delete()
+      .eq('subcategory_id', subcategoryId)
+      .eq('user_id', user.id);
+
+    if (monthlySubError) throw monthlySubError;
+
+    // Finally, delete the subcategory
     const { error } = await supabase
       .from('subcategories')
       .delete()

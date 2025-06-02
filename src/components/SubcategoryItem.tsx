@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,6 +10,7 @@ import { formatCurrency, generateId, getProgressBarColor } from "@/lib/utils";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { SubcategoryType } from "@/lib/types";
+import SubcategoryDeleteDialog from "./SubcategoryDeleteDialog";
 
 interface SubcategoryItemProps {
   currentMonth: string;
@@ -29,6 +29,8 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
   const [subcategoryName, setSubcategoryName] = useState("");
   const [subcategoryAmount, setSubcategoryAmount] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [subcategoryToDelete, setSubcategoryToDelete] = useState<SubcategoryType | null>(null);
   const { toast } = useToast();
 
   const handleAddSubcategory = async () => {
@@ -263,9 +265,8 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
                       variant="ghost" 
                       size="icon"
                       onClick={() => {
-                        if (confirm("Are you sure you want to delete this subcategory?")) {
-                          handleDeleteSubcategory(subcategory.id);
-                        }
+                        setSubcategoryToDelete(subcategory);
+                        setDeleteDialogOpen(true);
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -291,6 +292,20 @@ export default function SubcategoryItem({ currentMonth, categoryId, subcategorie
           })}
         </div>
       )}
+
+      <SubcategoryDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        subcategoryName={subcategoryToDelete?.name || ""}
+        subcategoryId={subcategoryToDelete?.id || ""}
+        onConfirmDelete={() => {
+          if (subcategoryToDelete) {
+            handleDeleteSubcategory(subcategoryToDelete.id);
+            setDeleteDialogOpen(false);
+            setSubcategoryToDelete(null);
+          }
+        }}
+      />
     </div>
   );
 }
