@@ -61,6 +61,10 @@ export default function CategoryItem({
     onEdit(category);
   };
 
+  const isOverBudget = category.remaining < 0;
+  const displayAmount = Math.abs(category.remaining);
+  const displayText = isOverBudget ? "overspent" : "remaining";
+
   return (
     <AccordionItem value={category.id} className="border rounded-lg overflow-hidden bg-white">
       <AccordionTrigger className="px-4 py-3 hover:no-underline bg-white">
@@ -78,8 +82,8 @@ export default function CategoryItem({
               <div className="text-sm text-muted-foreground">
                 Budget: {formatCurrency(category.budgeted)}
               </div>
-              <div className={`text-sm font-medium ${category.remaining >= 0 ? 'text-green-700' : 'text-red-600'}`}>
-                {formatCurrency(category.remaining)} remaining
+              <div className={`text-sm font-medium ${isOverBudget ? 'text-red-600' : 'text-green-700'}`}>
+                {formatCurrency(displayAmount)} {displayText}
               </div>
             </div>
             
