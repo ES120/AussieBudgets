@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { milestoneService } from "@/services/milestoneService";
 import { MilestoneWithMetrics } from "@/lib/milestoneTypes";
 import MilestoneForm from "@/components/MilestoneForm";
@@ -13,7 +14,8 @@ export default function Milestones() {
   const { toast } = useToast();
   const [milestones, setMilestones] = useState<MilestoneWithMetrics[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<MilestoneWithMetrics | null>(null);
 
   useEffect(() => {
@@ -40,7 +42,7 @@ export default function Milestones() {
   const handleCreateMilestone = async (milestoneData: any) => {
     await milestoneService.createMilestone(milestoneData);
     await loadMilestones();
-    setShowForm(false);
+    setShowCreateModal(false);
   };
 
   const handleUpdateMilestone = async (milestoneData: any) => {
@@ -48,6 +50,7 @@ export default function Milestones() {
       await milestoneService.updateMilestone(editingMilestone.id, milestoneData);
       await loadMilestones();
       setEditingMilestone(null);
+      setShowEditModal(false);
     }
   };
 
@@ -63,11 +66,12 @@ export default function Milestones() {
 
   const handleEdit = (milestone: MilestoneWithMetrics) => {
     setEditingMilestone(milestone);
-    setShowForm(false);
+    setShowEditModal(true);
   };
 
   const handleCancelEdit = () => {
     setEditingMilestone(null);
+    setShowEditModal(false);
   };
 
   if (loading) {
@@ -85,29 +89,41 @@ export default function Milestones() {
           <h1 className="text-3xl font-bold">Financial Milestones</h1>
           <p className="text-muted-foreground">Track your financial goals and achievements</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)}>
-          <Plus className="h-4 w-4 mr-2" />
-          {showForm ? 'Cancel' : 'New Milestone'}
-        </Button>
+        <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              New Milestone
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Milestone</DialogTitle>
+            </DialogHeader>
+            <MilestoneForm
+              onSubmit={handleCreateMilestone}
+              onCancel={() => setShowCreateModal(false)}
+            />
+          </DialogContent>
+        </Dialog>
       </div>
 
-      {/* Create Form */}
-      {showForm && (
-        <MilestoneForm
-          onSubmit={handleCreateMilestone}
-          onCancel={() => setShowForm(false)}
-        />
-      )}
-
-      {/* Edit Form */}
-      {editingMilestone && (
-        <MilestoneForm
-          onSubmit={handleUpdateMilestone}
-          initialData={editingMilestone}
-          isEditing={true}
-          onCancel={handleCancelEdit}
-        />
-      )}
+      {/* Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Milestone</DialogTitle>
+          </DialogHeader>
+          {editingMilestone && (
+            <MilestoneForm
+              onSubmit={handleUpdateMilestone}
+              initialData={editingMilestone}
+              isEditing={true}
+              onCancel={handleCancelEdit}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Milestones Overview */}
       {milestones.length > 0 && (
@@ -143,10 +159,23 @@ export default function Milestones() {
         <Card>
           <CardContent className="text-center py-8">
             <p className="text-muted-foreground mb-4">No milestones created yet.</p>
-            <Button onClick={() => setShowForm(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Milestone
-            </Button>
+            <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Milestone
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Create New Milestone</DialogTitle>
+                </DialogHeader>
+                <MilestoneForm
+                  onSubmit={handleCreateMilestone}
+                  onCancel={() => setShowCreateModal(false)}
+                />
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
       ) : (
