@@ -1,10 +1,11 @@
 
 import { useState, useEffect } from "react";
-import { getCurrentMonth, getTransactions } from "@/lib/supabaseStore";
+import { getCurrentMonth, getTransactions, setCurrentMonth } from "@/lib/supabaseStore";
 import TransactionList from "@/components/TransactionList";
+import MonthSelector from "@/components/MonthSelector";
 
 export default function Transactions() {
-  const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
+  const [currentMonth, setCurrentMonthState] = useState(getCurrentMonth());
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -33,6 +34,11 @@ export default function Transactions() {
     }
   };
 
+  const handleMonthChange = (month: string) => {
+    setCurrentMonthState(month);
+    setCurrentMonth(month); // Update the global current month
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -47,6 +53,11 @@ export default function Transactions() {
         <h1 className="text-3xl font-bold">Expenses / Transactions</h1>
         <p className="text-muted-foreground">Record and manage your transaction history</p>
       </div>
+
+      <MonthSelector 
+        currentMonth={currentMonth}
+        onMonthChange={handleMonthChange}
+      />
 
       <TransactionList 
         currentMonth={currentMonth}
