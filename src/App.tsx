@@ -5,8 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
-import Index from "./pages/Index";
+import Dashboard from "./pages/Dashboard";
+import BudgetTracker from "./pages/BudgetTracker";
+import Transactions from "./pages/Transactions";
+import Milestones from "./pages/Milestones";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 
@@ -22,15 +27,31 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route 
-              path="/" 
+              path="/*" 
               element={
                 <ProtectedRoute>
-                  <Index />
+                  <SidebarProvider>
+                    <div className="min-h-screen flex w-full">
+                      <AppSidebar />
+                      <SidebarInset className="flex-1">
+                        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+                          <SidebarTrigger className="-ml-1" />
+                        </header>
+                        <main className="flex-1 p-6">
+                          <Routes>
+                            <Route path="/" element={<Dashboard />} />
+                            <Route path="/budget" element={<BudgetTracker />} />
+                            <Route path="/transactions" element={<Transactions />} />
+                            <Route path="/milestones" element={<Milestones />} />
+                            <Route path="*" element={<NotFound />} />
+                          </Routes>
+                        </main>
+                      </SidebarInset>
+                    </div>
+                  </SidebarProvider>
                 </ProtectedRoute>
               } 
             />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>

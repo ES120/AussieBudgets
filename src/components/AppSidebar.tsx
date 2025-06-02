@@ -1,0 +1,87 @@
+
+import { Home, Target, CreditCard, Trophy } from "lucide-react";
+import { Link, useLocation } from "react-router-dom";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarFooter,
+} from "@/components/ui/sidebar";
+
+const navigationItems = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: Home,
+  },
+  {
+    title: "Budget Tracker",
+    url: "/budget",
+    icon: Target,
+  },
+  {
+    title: "Expenses / Transactions",
+    url: "/transactions",
+    icon: CreditCard,
+  },
+  {
+    title: "Milestones",
+    url: "/milestones",
+    icon: Trophy,
+  },
+];
+
+export function AppSidebar() {
+  const location = useLocation();
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="p-6">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-orange-400 rounded-lg flex items-center justify-center">
+            <span className="text-white font-bold text-sm">AB</span>
+          </div>
+          <div>
+            <h2 className="font-semibold text-lg">Aussie Budget</h2>
+          </div>
+        </div>
+      </SidebarHeader>
+      
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>NAVIGATION</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {navigationItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild isActive={location.pathname === item.url}>
+                    <Link to={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+      
+      <SidebarFooter className="p-4">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
+          <div>
+            <p className="text-sm font-medium">Edwin Sit</p>
+            <p className="text-xs text-muted-foreground">edwinsiit123@gmail.com</p>
+          </div>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
