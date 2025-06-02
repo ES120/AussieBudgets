@@ -17,9 +17,17 @@ interface SpendingBreakdownProps {
   }>;
 }
 
+type ExtendedSubcategory = SubcategoryType & { 
+  spent: number; 
+  remaining: number;
+  status: "under" | "warning" | "over" | "neutral";
+  categoryName: string;
+  categoryColor: string;
+};
+
 export default function SpendingBreakdown({ categories }: SpendingBreakdownProps) {
   // Flatten all subcategories with their spending data
-  const allSubcategories = categories.flatMap(category => 
+  const allSubcategories: ExtendedSubcategory[] = categories.flatMap(category => 
     category.subcategories.map(subcategory => ({
       ...subcategory,
       categoryName: category.name,
