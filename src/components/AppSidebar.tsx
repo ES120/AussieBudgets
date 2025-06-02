@@ -1,6 +1,8 @@
 
 import { Home, Target, CreditCard, Trophy } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import UserMenu from "@/components/auth/UserMenu";
 import {
   Sidebar,
   SidebarContent,
@@ -39,6 +41,11 @@ const navigationItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { user } = useAuth();
+
+  const getInitials = (email: string) => {
+    return email.substring(0, 2).toUpperCase();
+  };
 
   return (
     <Sidebar>
@@ -75,11 +82,20 @@ export function AppSidebar() {
       
       <SidebarFooter className="p-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-          <div>
-            <p className="text-sm font-medium">Edwin Sit</p>
-            <p className="text-xs text-muted-foreground">edwinsiit123@gmail.com</p>
+          <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+            <span className="text-gray-600 font-medium text-sm">
+              {user?.email ? getInitials(user.email) : 'U'}
+            </span>
           </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">
+              {user?.email?.split('@')[0] || 'User'}
+            </p>
+            <p className="text-xs text-muted-foreground truncate">
+              {user?.email || 'user@example.com'}
+            </p>
+          </div>
+          <UserMenu />
         </div>
       </SidebarFooter>
     </Sidebar>
