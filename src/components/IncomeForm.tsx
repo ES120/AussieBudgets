@@ -48,7 +48,7 @@ export default function IncomeForm({
   return <Card>
       <CardHeader className="pb-2 bg-white">
         <CardTitle className="text-lg font-medium">Monthly Income</CardTitle>
-        <CardDescription>Set your monthly income target</CardDescription>
+        <CardDescription>Input your estimated monthly income</CardDescription>
       </CardHeader>
       
       <CardContent>
