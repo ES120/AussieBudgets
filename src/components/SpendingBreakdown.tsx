@@ -43,19 +43,32 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
   function getStatusColor(status: "under" | "warning" | "over" | "neutral") {
     switch (status) {
       case "over":
-        return "bg-red-500";
+        return "bg-budget-over";
       case "warning":
-        return "bg-yellow-500";
+        return "bg-budget-warning";
       case "under":
-        return "bg-green-500";
+        return "bg-budget-under";
       default:
-        return "bg-gray-500";
+        return "bg-budget-neutral";
     }
   }
 
   function getProgressPercentage(spent: number, budgeted: number) {
     if (budgeted === 0) return 0;
     return Math.min((spent / budgeted) * 100, 100);
+  }
+
+  function getProgressBarColor(status: "under" | "warning" | "over" | "neutral") {
+    switch (status) {
+      case "over":
+        return "bg-budget-over";
+      case "warning":
+        return "bg-budget-warning";
+      case "under":
+        return "bg-budget-under";
+      default:
+        return "bg-budget-neutral";
+    }
   }
 
   if (sortedSubcategories.length === 0) {
@@ -96,15 +109,17 @@ export default function SpendingBreakdown({ categories }: SpendingBreakdownProps
                 </p>
               </div>
             </div>
-            <Progress 
-              value={getProgressPercentage(subcategory.spent, subcategory.budgeted)}
-              className="h-2"
-            />
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all ${getProgressBarColor(subcategory.status)}`}
+                style={{ width: `${Math.min(getProgressPercentage(subcategory.spent, subcategory.budgeted), 100)}%` }}
+              />
+            </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>
                 {getProgressPercentage(subcategory.spent, subcategory.budgeted).toFixed(1)}% used
               </span>
-              <span>
+              <span className={subcategory.remaining >= 0 ? 'text-budget-under' : 'text-budget-over'}>
                 {formatCurrency(subcategory.remaining)} remaining
               </span>
             </div>
