@@ -14,7 +14,7 @@ export default function Transactions() {
     queryFn: () => supabaseService.getMonthlyBudget(currentMonth),
   });
 
-  const { data: transactions } = useQuery({
+  const { data: transactions, refetch } = useQuery({
     queryKey: ['transactions', currentMonth],
     queryFn: () => supabaseService.getTransactions(currentMonth),
   });
@@ -39,8 +39,8 @@ export default function Transactions() {
       
       <TransactionList 
         transactions={transactions || []} 
-        monthlyBudget={monthlyBudget} 
         currentMonth={currentMonth}
+        onUpdate={() => refetch()}
       />
     </div>
   );

@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query";
 import { supabaseService } from "@/services/supabaseService";
 import { getCurrentMonth, getMonthlyAnalytics } from "@/lib/store";
 import BudgetSummary from "@/components/BudgetSummary";
-import BudgetCharts from "@/components/BudgetCharts";
+import { CategoryBarChart, BudgetPieChart } from "@/components/BudgetCharts";
 import BudgetHeader from "@/components/BudgetHeader";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
@@ -39,8 +40,24 @@ export default function Dashboard() {
       />
       
       <div className="grid gap-6 md:grid-cols-2">
-        <BudgetSummary analytics={analytics} />
-        <BudgetCharts analytics={analytics} />
+        <BudgetSummary 
+          categories={analytics.categories}
+          totalBudgeted={analytics.totalBudgeted}
+          totalSpent={analytics.totalSpent}
+        />
+        <div className="grid grid-cols-1 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg font-medium">Budget by Category</CardTitle>
+              <CardDescription>Compare budgeted vs actual spending</CardDescription>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="h-80">
+                <CategoryBarChart categories={analytics.categories} />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
