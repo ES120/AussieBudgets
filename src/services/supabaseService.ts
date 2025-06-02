@@ -113,22 +113,39 @@ export const supabaseService = {
       return;
     }
 
-    // Calculate total monthly savings needed for all milestones
+    // Calculate total monthly savings needed for all milestones with more precise calculation
     let totalMonthlySavings = 0;
     const milestoneData = activeMilestones.map(milestone => {
+      const today = new Date();
       const startDate = new Date(milestone.start_date);
       const targetDate = new Date(milestone.target_date);
-      const monthsRemaining = Math.max(1, Math.ceil((targetDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30.44)));
-      const remainingAmount = milestone.target_amount - milestone.current_amount;
-      const monthlySavingsNeeded = Math.max(0, remainingAmount / monthsRemaining);
+      
+      // Use today as reference if start date is in the past
+      const referenceDate = startDate > today ? startDate : today;
+      
+      // Calculate days remaining from today (or start date if in future) to target date
+      const daysRemaining = Math.max(1, Math.ceil((targetDate.getTime() - referenceDate.getTime()) / (1000 * 60 * 60 * 24)));
+      
+      // Convert days to months (using 30.44 days per month for accuracy)
+      const monthsRemaining = Math.max(0.1, daysRemaining / 30.44);
+      
+      const remainingAmount = Math.max(0, milestone.target_amount - milestone.current_amount);
+      const monthlySavingsNeeded = remainingAmount / monthsRemaining;
+      
+      console.log(`Milestone ${milestone.name}: ${remainingAmount} remaining over ${monthsRemaining.toFixed(2)} months = ${monthlySavingsNeeded.toFixed(2)} monthly`);
       
       totalMonthlySavings += monthlySavingsNeeded;
       
       return {
         ...milestone,
-        monthlySavingsNeeded
+        monthlySavingsNeeded: Math.round(monthlySavingsNeeded * 100) / 100 // Round to 2 decimal places
       };
     });
+
+    // Round total to 2 decimal places
+    totalMonthlySavings = Math.round(totalMonthlySavings * 100) / 100;
+
+    console.log('Total monthly savings needed:', totalMonthlySavings);
 
     // Check if Milestones category already exists
     const { data: existingCategory, error: existingError } = await supabase
@@ -146,7 +163,7 @@ export const supabaseService = {
     let milestonesCategoryId: string;
 
     if (existingCategory) {
-      // Update existing category budget
+      // Update existing category budget with precise amount
       milestonesCategoryId = existingCategory.id;
       const { error: updateError } = await supabase
         .from('categories')
@@ -188,27 +205,27 @@ export const supabaseService = {
       return;
     }
 
-    const existingSubcategoryIds = new Set(existingSubcategories?.map(sub => sub.name) || []);
+    const existingSubcategoryMap = new Map(
+      (existingSubcategories || []).map(sub => [sub.name, sub])
+    );
 
-    // Create or update subcategories for each milestone
+    // Create or update subcategories for each milestone with precise amounts
     for (const milestone of milestoneData) {
       const subcategoryName = milestone.name;
+      const existingSub = existingSubcategoryMap.get(subcategoryName);
 
-      if (existingSubcategoryIds.has(subcategoryName)) {
-        // Update existing subcategory
-        const existingSub = existingSubcategories?.find(sub => sub.name === subcategoryName);
-        if (existingSub) {
-          const { error: updateSubError } = await supabase
-            .from('subcategories')
-            .update({ budgeted: milestone.monthlySavingsNeeded })
-            .eq('id', existingSub.id);
+      if (existingSub) {
+        // Update existing subcategory with precise amount
+        const { error: updateSubError } = await supabase
+          .from('subcategories')
+          .update({ budgeted: milestone.monthlySavingsNeeded })
+          .eq('id', existingSub.id);
 
-          if (updateSubError) {
-            console.error('Error updating milestone subcategory:', updateSubError);
-          }
+        if (updateSubError) {
+          console.error('Error updating milestone subcategory:', updateSubError);
         }
       } else {
-        // Create new subcategory
+        // Create new subcategory with precise amount
         const { error: createSubError } = await supabase
           .from('subcategories')
           .insert({
@@ -226,9 +243,9 @@ export const supabaseService = {
 
     // Remove subcategories for milestones that no longer exist
     const activeMilestoneNames = new Set(milestoneData.map(m => m.name));
-    const subcategoriesToRemove = existingSubcategories?.filter(sub => 
+    const subcategoriesToRemove = (existingSubcategories || []).filter(sub => 
       !activeMilestoneNames.has(sub.name)
-    ) || [];
+    );
 
     for (const subToRemove of subcategoriesToRemove) {
       const { error: deleteSubError } = await supabase
