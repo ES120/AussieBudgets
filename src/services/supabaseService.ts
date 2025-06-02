@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -194,10 +193,87 @@ export const supabaseService = {
     if (error) throw error;
   },
 
+  async categoryHasTransactions(categoryId: string): Promise<boolean> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // First check for direct transactions on subcategories of this category
+    const { data: subcategories, error: subError } = await supabase
+      .from('subcategories')
+      .select('id')
+      .eq('category_id', categoryId)
+      .eq('user_id', user.id);
+
+    if (subError) throw subError;
+
+    if (subcategories && subcategories.length > 0) {
+      const subcategoryIds = subcategories.map(sub => sub.id);
+      
+      const { data: transactions, error: transError } = await supabase
+        .from('transactions')
+        .select('id')
+        .in('subcategory_id', subcategoryIds)
+        .eq('user_id', user.id)
+        .limit(1);
+
+      if (transError) throw transError;
+      
+      return (transactions && transactions.length > 0);
+    }
+
+    return false;
+  },
+
   async deleteCategory(categoryId: string): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    // First, get all subcategories for this category
+    const { data: subcategories, error: subError } = await supabase
+      .from('subcategories')
+      .select('id')
+      .eq('category_id', categoryId)
+      .eq('user_id', user.id);
+
+    if (subError) throw subError;
+
+    // If there are subcategories, delete their transactions first
+    if (subcategories && subcategories.length > 0) {
+      const subcategoryIds = subcategories.map(sub => sub.id);
+      
+      // Delete all transactions linked to these subcategories
+      const { error: transError } = await supabase
+        .from('transactions')
+        .delete()
+        .in('subcategory_id', subcategoryIds)
+        .eq('user_id', user.id);
+
+      if (transError) throw transError;
+    }
+
+    // Delete monthly subcategory budgets
+    if (subcategories && subcategories.length > 0) {
+      const subcategoryIds = subcategories.map(sub => sub.id);
+      
+      const { error: monthlySubError } = await supabase
+        .from('monthly_subcategory_budgets')
+        .delete()
+        .in('subcategory_id', subcategoryIds)
+        .eq('user_id', user.id);
+
+      if (monthlySubError) throw monthlySubError;
+    }
+
+    // Delete monthly category budgets
+    const { error: monthlyCatError } = await supabase
+      .from('monthly_category_budgets')
+      .delete()
+      .eq('category_id', categoryId)
+      .eq('user_id', user.id);
+
+    if (monthlyCatError) throw monthlyCatError;
+
+    // Finally, delete the category (which will cascade delete subcategories due to foreign key)
     const { error } = await supabase
       .from('categories')
       .delete()

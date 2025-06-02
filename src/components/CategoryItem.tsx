@@ -2,13 +2,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CategoryType, SubcategoryType } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { Edit, Trash2 } from "lucide-react";
 import { supabaseService } from "@/services/supabaseService";
 import { useToast } from "@/hooks/use-toast";
 import SubcategoryItem from "./SubcategoryItem";
+import CategoryDeleteDialog from "./CategoryDeleteDialog";
 
 interface CategoryItemProps {
   currentMonth: string;
@@ -41,7 +41,7 @@ export default function CategoryItem({
       onUpdate();
       toast({
         title: "Category Deleted",
-        description: "Category and all its subcategories have been removed."
+        description: "Category and all its related data have been removed."
       });
     } catch (error) {
       console.error('Error deleting category:', error);
@@ -87,27 +87,16 @@ export default function CategoryItem({
                 <Edit className="h-4 w-4" />
               </Button>
               
-              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the "{category.name}" category and all its subcategories.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteDialogOpen(true);
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
             </div>
           </div>
         </div>
@@ -123,6 +112,14 @@ export default function CategoryItem({
           />
         </div>
       </AccordionContent>
+
+      <CategoryDeleteDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        categoryName={category.name}
+        categoryId={category.id}
+        onConfirmDelete={handleDeleteCategory}
+      />
     </AccordionItem>
   );
 }
