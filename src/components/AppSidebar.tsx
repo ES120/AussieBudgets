@@ -28,7 +28,7 @@ export function AppSidebar() {
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
-  return <Sidebar>
+  return <Sidebar className="bg-white">
       <SidebarHeader className="p-4">
         <div className="flex items-center gap-3">
           <img alt="Aussie Budget Logo" className="w-8 h-8 rounded-lg object-cover flex-shrink-0" src="/lovable-uploads/c8dddcff-1465-4d06-805d-62b7e5d8803b.png" />
