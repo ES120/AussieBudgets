@@ -33,6 +33,42 @@ export type Database = {
         }
         Relationships: []
       }
+      milestones: {
+        Row: {
+          created_at: string
+          current_amount: number
+          id: string
+          name: string
+          start_date: string
+          target_amount: number
+          target_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_amount?: number
+          id?: string
+          name: string
+          start_date?: string
+          target_amount: number
+          target_date: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_amount?: number
+          id?: string
+          name?: string
+          start_date?: string
+          target_amount?: number
+          target_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       monthly_budgets: {
         Row: {
           created_at: string | null
