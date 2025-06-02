@@ -37,14 +37,18 @@ export default function CategoryDialog({
 }: CategoryDialogProps) {
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryBudget, setNewCategoryBudget] = useState("");
+  const [editCategoryName, setEditCategoryName] = useState("");
+  const [editCategoryBudget, setEditCategoryBudget] = useState("");
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-  // Open dialog when editCategory is set
+  // Open dialog when editCategory is set and populate edit form
   useEffect(() => {
     if (editCategory) {
       console.log('Opening edit dialog for category:', editCategory);
+      setEditCategoryName(editCategory.name);
+      setEditCategoryBudget(editCategory.budgeted.toString());
       setCategoryDialogOpen(true);
     }
   }, [editCategory]);
@@ -105,7 +109,7 @@ export default function CategoryDialog({
   };
 
   const handleUpdateCategory = async () => {
-    if (!editCategory || !editCategory.name.trim()) {
+    if (!editCategory || !editCategoryName.trim()) {
       toast({
         title: "Error",
         description: "Please enter a category name",
@@ -114,17 +118,20 @@ export default function CategoryDialog({
       return;
     }
 
+    const budgetAmount = parseFloat(editCategoryBudget) || 0;
+
     setSaving(true);
     try {
-      console.log('Updating category:', editCategory);
+      console.log('Updating category:', { ...editCategory, name: editCategoryName, budgeted: budgetAmount });
       
       // Update the category details
-      await supabaseService.updateCategory(editCategory);
+      const updatedCategory = { ...editCategory, name: editCategoryName };
+      await supabaseService.updateCategory(updatedCategory);
       console.log('Category updated successfully');
       
       // Update the monthly budget for this category
-      console.log('Updating monthly budget:', editCategory.id, currentMonth, editCategory.budgeted);
-      await updateCategoryMonthlyBudget(editCategory.id, currentMonth, editCategory.budgeted);
+      console.log('Updating monthly budget:', editCategory.id, currentMonth, budgetAmount);
+      await updateCategoryMonthlyBudget(editCategory.id, currentMonth, budgetAmount);
       console.log('Monthly budget updated successfully');
       
       setEditCategory(null);
@@ -150,10 +157,12 @@ export default function CategoryDialog({
     setEditCategory(null);
     setNewCategoryName("");
     setNewCategoryBudget("");
+    setEditCategoryName("");
+    setEditCategoryBudget("");
   };
 
   const getCurrentCategoryName = () => {
-    return editCategory ? editCategory.name : newCategoryName;
+    return editCategory ? editCategoryName : newCategoryName;
   };
 
   const getDescriptionText = () => {
@@ -191,11 +200,8 @@ export default function CategoryDialog({
             <Label htmlFor="categoryName">Category Name</Label>
             <Input 
               id="categoryName" 
-              value={editCategory ? editCategory.name : newCategoryName} 
-              onChange={(e) => editCategory ? setEditCategory({
-                ...editCategory,
-                name: e.target.value
-              }) : setNewCategoryName(e.target.value)} 
+              value={editCategory ? editCategoryName : newCategoryName} 
+              onChange={(e) => editCategory ? setEditCategoryName(e.target.value) : setNewCategoryName(e.target.value)} 
               className="mt-2" 
               placeholder="e.g., Wants, Needs, Bills" 
               disabled={saving} 
@@ -209,14 +215,8 @@ export default function CategoryDialog({
               type="number" 
               min="0" 
               step="0.01" 
-              value={editCategory 
-                ? editCategory.budgeted.toString() 
-                : newCategoryBudget
-              } 
-              onChange={(e) => editCategory ? setEditCategory({
-                ...editCategory,
-                budgeted: parseFloat(e.target.value) || 0
-              }) : setNewCategoryBudget(e.target.value)} 
+              value={editCategory ? editCategoryBudget : newCategoryBudget} 
+              onChange={(e) => editCategory ? setEditCategoryBudget(e.target.value) : setNewCategoryBudget(e.target.value)} 
               className="mt-2" 
               placeholder="0.00" 
               disabled={saving} 
