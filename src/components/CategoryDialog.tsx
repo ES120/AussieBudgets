@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,14 @@ export default function CategoryDialog({
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
+
+  // Open dialog when editCategory is set
+  useEffect(() => {
+    if (editCategory) {
+      console.log('Opening edit dialog for category:', editCategory);
+      setCategoryDialogOpen(true);
+    }
+  }, [editCategory]);
 
   const handleAddCategory = async () => {
     if (!newCategoryName.trim()) {

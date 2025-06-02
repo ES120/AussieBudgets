@@ -1,6 +1,8 @@
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { CategoryType, SubcategoryType } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 import { Edit, Trash2 } from "lucide-react";
@@ -31,10 +33,11 @@ export default function CategoryItem({
   onUpdate
 }: CategoryItemProps) {
   const { toast } = useToast();
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const handleDeleteCategory = async (categoryId: string) => {
+  const handleDeleteCategory = async () => {
     try {
-      await supabaseService.deleteCategory(categoryId);
+      await supabaseService.deleteCategory(category.id);
       onUpdate();
       toast({
         title: "Category Deleted",
@@ -47,7 +50,15 @@ export default function CategoryItem({
         description: "Failed to delete category. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
     }
+  };
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    console.log('Edit button clicked for category:', category);
+    onEdit(category);
   };
 
   return (
@@ -73,20 +84,31 @@ export default function CategoryItem({
             </div>
             
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" onClick={(e) => {
-                e.stopPropagation();
-                onEdit(category);
-              }}>
+              <Button variant="ghost" size="icon" onClick={handleEditClick}>
                 <Edit className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" onClick={(e) => {
-                e.stopPropagation();
-                if (confirm("Are you sure you want to delete this category? All subcategories will be removed.")) {
-                  handleDeleteCategory(category.id);
-                }
-              }}>
-                <Trash2 className="h-4 w-4" />
-              </Button>
+              
+              <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={(e) => e.stopPropagation()}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete the "{category.name}" category and all its subcategories.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteCategory} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
         </div>
