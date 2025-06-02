@@ -58,21 +58,7 @@ export function AppSidebar() {
           </div>
         </div>
         
-        {showMonthSelector && <div className="mt-4">
-            <label className="text-sm font-medium text-muted-foreground mb-2 block">
-              Current Month
-            </label>
-            <Select value={currentMonth} onValueChange={handleMonthChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select month" />
-              </SelectTrigger>
-              <SelectContent>
-                {monthOptions.map(option => <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>}
+        {showMonthSelector}
       </SidebarHeader>
       
       <SidebarContent>
