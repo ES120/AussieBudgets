@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -53,9 +52,16 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    console.log('Creating subcategory with data:', { categoryId, name, budgeted, userId: user.id });
+
     const { data, error } = await supabase
       .from('subcategories')
-      .insert([{ user_id: user.id, category_id: categoryId, name }])
+      .insert([{ 
+        user_id: user.id, 
+        category_id: categoryId, 
+        name: name,
+        budgeted: budgeted 
+      }])
       .select()
       .single();
 
@@ -64,18 +70,26 @@ export const supabaseService = {
       throw error;
     }
 
+    console.log('Subcategory created successfully:', data);
+
     return {
       id: data.id,
       name: data.name,
-      budgeted: 0,
+      budgeted: data.budgeted || 0,
       categoryId: data.category_id
     } as SubcategoryType;
   },
 
   async updateSubcategory(subcategory: SubcategoryType): Promise<SubcategoryType> {
+    console.log('Updating subcategory:', subcategory);
+
     const { data, error } = await supabase
       .from('subcategories')
-      .update({ name: subcategory.name, category_id: subcategory.categoryId })
+      .update({ 
+        name: subcategory.name, 
+        category_id: subcategory.categoryId,
+        budgeted: subcategory.budgeted 
+      })
       .eq('id', subcategory.id)
       .select()
       .single();
@@ -85,10 +99,12 @@ export const supabaseService = {
       throw error;
     }
 
+    console.log('Subcategory updated successfully:', data);
+
     return {
       id: data.id,
       name: data.name,
-      budgeted: subcategory.budgeted,
+      budgeted: data.budgeted || 0,
       categoryId: data.category_id
     } as SubcategoryType;
   },
