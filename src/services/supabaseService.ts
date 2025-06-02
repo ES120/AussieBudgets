@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { CategoryType, SubcategoryType, TransactionType, MonthlyBudget } from "@/lib/types";
 
@@ -263,11 +264,16 @@ export const supabaseService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // Fix the date query - use proper date range filtering instead of LIKE
+    const startDate = `${month}-01`;
+    const endDate = `${month}-31`;
+
     const { data, error } = await supabase
       .from('transactions')
       .select('*')
       .eq('user_id', user.id)
-      .like('date', `${month}%`)
+      .gte('date', startDate)
+      .lte('date', endDate)
       .order('date', { ascending: false });
 
     if (error) {
